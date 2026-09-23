@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emma Xu</title>
+    <style>
+      body {
+        min-height: 100vh;
+        margin: 0;
+        background: radial-gradient(circle at center, #EDE4D3 0%, #B6A58D 100%);
+        font-family: courier, monospace;
+      }
+
+      .site-nav {
+        --half-nav-gap: clamp(12px, 1.5vw, 18px);
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translateY(-50%);
+        white-space: nowrap;
+      }
+
+      .site-nav a {
+        color: inherit;
+        font-size: 20px;
+        text-decoration: none;
+      }
+
+      .site-nav a.selected {
+        font-weight: bold;
+      }
+
+      .page-menu {
+        position: absolute;
+        top: 50%;
+        right: var(--half-nav-gap);
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 8px;
+        text-align: right;
+        transform: translateY(-50%);
+      }
+
+      .contact-link {
+        position: absolute;
+        top: 50%;
+        left: var(--half-nav-gap);
+        text-align: left;
+        transform: translateY(-50%);
+      }
+
+      .site-nav .extra-link {
+        visibility: hidden;
+        opacity: 0;
+        pointer-events: none;
+        transform: translateY(8px);
+        transition:
+          opacity 200ms ease,
+          transform 200ms ease,
+          visibility 0s linear 200ms;
+      }
+
+      .site-nav .extra-link:last-child {
+        transform: translateY(-8px);
+      }
+
+      .site-nav:hover .extra-link,
+      .site-nav:focus-within .extra-link {
+        visibility: visible;
+        opacity: 1;
+        pointer-events: auto;
+        transform: translateY(0);
+        transition-delay: 0s;
+      }
+    </style>
+  </head>
+  <body>
+    <nav class="site-nav" aria-label="Main navigation">
+      <div class="page-menu">
+        <a class="extra-link" href="#projects">Projects</a>
+        <a class="selected" href="#home">Emma Xu</a>
+        <a class="extra-link" href="#about">Who I am</a>
+      </div>
+      <a class="contact-link" href="#contact">Contact</a>
+    </nav>
+
+  </body>
+</html>
