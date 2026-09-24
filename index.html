@@ -12,6 +12,74 @@
         font-family: courier, monospace;
       }
 
+      @property --cursor-x {
+        syntax: "<length-percentage>";
+        inherits: false;
+        initial-value: 50%;
+      }
+
+      @property --cursor-y {
+        syntax: "<length-percentage>";
+        inherits: false;
+        initial-value: 50%;
+      }
+
+      .prelude {
+        --reveal-radius: clamp(80px, 6vw, 100px);
+        --half-nav-gap: clamp(12px, 1.5vw, 18px);
+        --cursor-x: 50%;
+        --cursor-y: 50%;
+        --reveal-radius: 100px;
+        position: fixed;
+        inset: 0;
+        z-index: 2;
+        cursor: default;
+        transition: opacity 350ms ease;
+      }
+
+      .prelude.is-dismissed {
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      .prelude-title {
+        position: absolute;
+        top: 50%;
+        left: calc(50% - var(--half-nav-gap));
+        pointer-events: none;
+        font-size: 20px;
+        font-weight: bold;
+        transform: translate(-100%, -50%);
+        white-space: nowrap;
+      }
+
+      .prelude-mask {
+        position: absolute;
+        inset: 0;
+        z-index: 1;
+        pointer-events: none;
+        transition: none;
+        background: radial-gradient(
+            circle var(--reveal-radius) at var(--cursor-x) var(--cursor-y),
+            transparent 0%,
+            transparent 55%,
+            rgb(0 0 0 / 18%) 67%,
+            rgb(0 0 0 / 48%) 80%,
+            rgb(0 0 0 / 80%) 91%,
+            #000 100%
+        );
+        --cursor-x:30vh;
+        --cursor-y:40vw;
+      }
+
+      .site-nav {
+        visibility: hidden;
+      }
+
+      .site-nav.is-ready {
+        visibility: visible;
+      }
+
       .site-nav {
         --half-nav-gap: clamp(12px, 1.5vw, 18px);
         position: absolute;
@@ -95,6 +163,11 @@
     </style>
   </head>
   <body>
+    <div class="prelude" aria-hidden="true">
+      <div class="prelude-title">Emma Xu</div>
+      <div class="prelude-mask"></div>
+    </div>
+
     <nav class="site-nav" aria-label="Main navigation">
       <div class="page-menu">
         <a class="extra-link" href="#projects">Projects</a>
@@ -105,8 +178,155 @@
     </nav>
 
     <script>
-      // Detects whether the visitor prefers animations to be reduced or disabled.
-      const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+        const prelude = document.querySelector(".prelude");
+        const preludeMask = document.querySelector(".prelude-mask");
+        const siteNav = document.querySelector(".site-nav");
+        const prefersReducedMotion = window.matchMedia(
+        "(prefers-reduced-motion: reduce)"
+        );
+        const mobileQuery = window.matchMedia(
+        "(max-width: 640px), (hover: none)"
+        );
+
+        // Current position: where the spotlight is drawn now.
+        let x = window.innerWidth * 0.3;
+        let y = window.innerHeight * 0.4;   
+
+        // Target position: where the spotlight is travelling.
+        let targetX = x;
+        let targetY = y;
+
+        let automatic = !prefersReducedMotion.matches;
+        let spotlightActive = true;
+        let previousFrameTime = performance.now();
+        let idleTimer;
+
+        let heading = 0;
+        const idleSpeed = 65; // Pixels per second
+        const turnRate = 1.5; // Radians per second
+
+        function displaySpotlight() {
+        // Set these on the mask itself, where the gradient uses them.
+        preludeMask.style.setProperty("--cursor-x", `${x}px`);
+        preludeMask.style.setProperty("--cursor-y", `${y}px`);
+        }
+
+        function chooseTarget() {
+        const horizontalMargin = Math.min(90, window.innerWidth * 0.18);
+        const verticalMargin = Math.min(90, window.innerHeight * 0.18);
+
+        targetX =
+            horizontalMargin +
+            Math.random() *
+            Math.max(0, window.innerWidth - horizontalMargin * 2);
+
+        targetY =
+            verticalMargin +
+            Math.random() *
+            Math.max(0, window.innerHeight - verticalMargin * 2);
+        }
+
+        function resumeAutomaticMovement() {
+        window.clearTimeout(idleTimer);
+
+        idleTimer = window.setTimeout(() => {
+            if (spotlightActive && !prefersReducedMotion.matches) {
+            automatic = true;
+            chooseTarget();
+            }
+        }, 2200);
+        }
+
+        function animateSpotlight(currentTime) {
+        if (!spotlightActive) return;
+
+        const deltaTime = Math.min(
+            (currentTime - previousFrameTime) / 1000,
+            0.05
+        );
+        previousFrameTime = currentTime;
+
+        if (prefersReducedMotion.matches) {
+            x = targetX;
+            y = targetY;
+        } else if (automatic) {
+            // Pick another destination before reaching the current one.
+            if (Math.hypot(targetX - x, targetY - y) < 90) {
+                chooseTarget();
+            }
+
+            const desiredHeading = Math.atan2(targetY - y, targetX - x);
+
+            // Find the shortest turn toward that destination.
+            const angleDifference = Math.atan2(
+                Math.sin(desiredHeading - heading),
+                Math.cos(desiredHeading - heading)
+            );
+
+            // Limit how sharply the spotlight can turn in one frame.
+            const maximumTurn = turnRate * deltaTime;
+            heading += Math.max(
+                -maximumTurn,
+                Math.min(maximumTurn, angleDifference)
+            );
+
+            // Move the same distance per second, including while turning.
+            x += Math.cos(heading) * idleSpeed * deltaTime;
+            y += Math.sin(heading) * idleSpeed * deltaTime;
+        } else {
+            // Preserve the existing soft, delayed mouse follow.
+            const easing = 1 - Math.exp(-5 * deltaTime);
+            x += (targetX - x) * easing;
+            y += (targetY - y) * easing;
+        }
+
+        displaySpotlight();
+        window.requestAnimationFrame(animateSpotlight);
+        }
+
+        window.addEventListener("pointermove", (event) => {
+        if (
+            !spotlightActive ||
+            event.pointerType === "touch" ||
+            mobileQuery.matches
+        ) {
+            return;
+        }
+
+        automatic = false;
+        targetX = event.clientX;
+        targetY = event.clientY;
+        resumeAutomaticMovement();
+        });
+
+        window.addEventListener("resize", () => {
+        x = Math.max(0, Math.min(window.innerWidth, x));
+        y = Math.max(0, Math.min(window.innerHeight, y));
+        targetX = Math.max(0, Math.min(window.innerWidth, targetX));
+        targetY = Math.max(0, Math.min(window.innerHeight, targetY));
+        });
+
+        function dismissPrelude() {
+        if (!spotlightActive) return;
+
+        spotlightActive = false;
+        window.clearTimeout(idleTimer);
+        prelude.classList.add("is-dismissed");
+
+        window.setTimeout(() => {
+            prelude.remove();
+            siteNav.classList.add("is-ready");
+        }, 350);
+        }
+
+        prelude.addEventListener("click", dismissPrelude);
+
+        if (automatic) {
+            chooseTarget();
+            heading = Math.atan2(targetY - y, targetX - x);
+        }
+        displaySpotlight();
+        window.requestAnimationFrame(animateSpotlight);
 
       // Runs the setup once for every navigation link.
       document.querySelectorAll(".site-nav a").forEach((link) => {
