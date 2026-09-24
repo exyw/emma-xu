@@ -23,6 +23,7 @@
 
       .site-nav a {
         color: inherit;
+        display: block;
         font-size: 20px;
         text-decoration: none;
       }
@@ -74,6 +75,23 @@
         transform: translateY(0);
         transition-delay: 0s;
       }
+
+      .site-nav a.is-typing::after {
+        content: ""; /* Creates the pseudo-element without adding text. */
+        display: inline-block; /* Lets the caret have its own width and height. */
+        width: 0.6ch; /* Makes the caret about 60% as wide as a character. */
+        height: 0.8em; /* Makes the caret slightly shorter than the text. */
+        margin-left: 0.15ch; /* Adds a small gap after the typed label. */
+        vertical-align: -0.15em; /* Moves the caret down to align with the text. */
+        background: currentColor; /* Uses the link's current text color. */
+        animation: cursor-blink 1000ms steps(1) infinite; /* Blinks forever in discrete steps. */
+      }
+
+      @keyframes cursor-blink {
+        50% { /* At the halfway point, switch the caret off. */
+          opacity: 0; /* Makes the caret invisible for the second half. */
+        }
+      }
     </style>
   </head>
   <body>
@@ -86,5 +104,133 @@
       <a class="contact-link" href="#contact">Contact</a>
     </nav>
 
+    <script>
+      // Detects whether the visitor prefers animations to be reduced or disabled.
+      const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+
+      // Runs the setup once for every navigation link.
+      document.querySelectorAll(".site-nav a").forEach((link) => {
+        // Saves the original link text before the script replaces it.
+        const label = link.textContent.trim();
+        // Creates a span that will display the gradually typed text.
+        const text = document.createElement("span");
+        // Measures the original link so the layout does not resize while typing.
+        const linkWidth = link.getBoundingClientRect().width;
+        // Stores the timer that schedules the next character.
+        let typingTimer;
+        // Stores the timer that starts the next complete typing loop.
+        let cursorTimer;
+        // Tracks whether the pointer is still over this link.
+        let isHovered = false;
+        let previousDelays = [];
+        // Sets the shortest possible delay between typed characters in milliseconds.
+        const minimumTypingDelay = 40;
+        // Sets the longest possible delay between typed characters in milliseconds.
+        const maximumTypingDelay = 300;
+        // Sets the shortest pause before a new typing loop starts.
+        const minimumLoopDelay = 250;
+        // Sets the longest pause before a new typing loop starts.
+        const maximumLoopDelay = 900;
+
+        // Reserves the original width so the link does not move as text appears.
+        link.style.width = `${linkWidth}px`;
+        // Keeps the complete label available to screen readers.
+        link.setAttribute("aria-label", label);
+        // Removes the original text from the link's visible content.
+        link.textContent = "";
+        // Gives the visible text span its CSS class.
+        text.className = "nav-link-text";
+        // Prevents screen readers from reading the same label twice.
+        text.setAttribute("aria-hidden", "true");
+        // Shows the complete label until typing begins.
+        text.textContent = label;
+        // Places the visible text span inside the link.
+        link.append(text);
+
+        // Starts one complete typing cycle.
+        function typeLabel() {
+          // Leaves the label unchanged when reduced motion is enabled.
+          if (prefersReducedMotion.matches) return;
+
+          // Cancels any character timer from an earlier cycle.
+          window.clearTimeout(typingTimer);
+          // Cancels any pending restart from an earlier cycle.
+          window.clearTimeout(cursorTimer);
+          // Adds the class that displays and animates the block caret.
+          link.classList.add("is-typing");
+          // Clears the visible label so it can be typed from the beginning.
+          text.textContent = "";
+          // Starts counting at the first character.
+          let characterIndex = 0;
+
+          const currentDelays = [];
+
+          // Types one more character, then schedules the next one.
+          function typeNextCharacter() {
+            // Displays the label from its first character through the current one.
+            text.textContent = label.slice(0, characterIndex + 1);
+            // Moves the character position forward by one.
+            characterIndex += 1;
+
+            // Checks whether the complete label has been typed.
+            if (characterIndex === label.length) {
+              previousDelays = currentDelays;
+              // Only restart if the pointer is still over the link.
+              if (isHovered) {
+                // Chooses a new random pause for this loop.
+                const loopDelay = minimumLoopDelay + Math.random() * (maximumLoopDelay - minimumLoopDelay);
+                // Starts another typing cycle after that random pause.
+                cursorTimer = window.setTimeout(typeLabel, loopDelay);
+              }
+              // Stops this cycle because there are no more characters to type.
+              return;
+            }
+
+            // Chooses a new random delay for the next character.
+            const delayIndex = characterIndex - 1;
+            let typingDelay;
+
+            do {
+            typingDelay =
+                minimumTypingDelay +
+                Math.random() * (maximumTypingDelay - minimumTypingDelay);
+            } while (
+            previousDelays[delayIndex] !== undefined &&
+            Math.abs(typingDelay - previousDelays[delayIndex]) < 90
+            );
+
+            currentDelays[delayIndex] = typingDelay;
+            // Schedules the next character after the chosen delay.
+            typingTimer = window.setTimeout(typeNextCharacter, typingDelay);
+          }
+
+          // Types the first character immediately.
+          typeNextCharacter();
+        }
+
+        // Starts the animation when the pointer enters the link.
+        link.addEventListener("mouseenter", () => {
+          // Marks this link as actively hovered.
+          isHovered = true;
+          // Begins the first typing cycle.
+          typeLabel();
+        });
+        // Stops the animation when the pointer leaves the link.
+        link.addEventListener("mouseleave", () => {
+          // Prevents the completed cycle from starting another loop.
+          isHovered = false;
+          // Cancels any character that was waiting to be typed.
+          window.clearTimeout(typingTimer);
+          // Cancels any waiting loop restart.
+          window.clearTimeout(cursorTimer);
+          // Removes the caret and its blinking animation.
+          link.classList.remove("is-typing");
+          // Restores the complete label when hovering ends.
+          text.textContent = label;
+        });
+        // Starts typing when the link receives keyboard focus.
+        link.addEventListener("focus", typeLabel);
+      });
+    </script>
   </body>
 </html>
