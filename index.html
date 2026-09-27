@@ -12,6 +12,10 @@
         font-family: courier, monospace;
       }
 
+      .mobile-scroll {
+        display: none;
+      }
+
       @property --cursor-x {
         syntax: "<length-percentage>";
         inherits: false;
@@ -162,6 +166,78 @@
           opacity: 0;
         }
       }
+
+      @media (max-width: 640px) {
+        body {
+          min-height: 0;
+          overflow-x: hidden;
+        }
+
+        .prelude {
+          --reveal-radius: clamp(64px, 24vw, 96px);
+          position: absolute;
+          inset: 0 0 auto;
+          height: 100svh;
+          opacity: 1;
+          pointer-events: none;
+          transition: none;
+        }
+
+        .prelude.is-dismissed {
+          opacity: 1;
+        }
+
+        .prelude-title {
+          font-size: 18px;
+        }
+
+        .site-nav {
+          display: none;
+        }
+
+        .mobile-scroll {
+          display: block;
+        }
+
+        .mobile-section {
+          box-sizing: border-box;
+          display: grid;
+          min-height: 100svh;
+          padding: 24px;
+        }
+
+        .mobile-home {
+          pointer-events: none;
+        }
+
+        .mobile-section:not(.mobile-home) {
+          place-items: center;
+          text-align: center;
+        }
+
+        .mobile-section h2,
+        .mobile-section p {
+          margin: 0;
+          font-size: 20px;
+        }
+
+        .mobile-section p {
+          margin-top: 8px;
+          font-size: 16px;
+        }
+
+        .visually-hidden {
+          position: absolute;
+          width: 1px;
+          height: 1px;
+          padding: 0;
+          margin: -1px;
+          overflow: hidden;
+          clip: rect(0, 0, 0, 0);
+          white-space: nowrap;
+          border: 0;
+        }
+      }
     </style>
   </head>
   <body>
@@ -178,6 +254,33 @@
       </div>
       <a class="contact-link" href="contact.html">Contact</a>
     </nav>
+
+    <main class="mobile-scroll">
+      <section class="mobile-section mobile-home" aria-labelledby="mobile-home-title">
+        <h1 id="mobile-home-title" class="visually-hidden">Emma Xu</h1>
+      </section>
+
+      <section class="mobile-section" aria-labelledby="projects-title">
+        <div>
+          <h2 id="projects-title">Projects</h2>
+          <p>coming soon</p>
+        </div>
+      </section>
+
+      <section class="mobile-section" aria-labelledby="who-i-am-title">
+        <div>
+          <h2 id="who-i-am-title">Who I am</h2>
+          <p>coming soon</p>
+        </div>
+      </section>
+
+      <section class="mobile-section" aria-labelledby="contact-title">
+        <div>
+          <h2 id="contact-title">Contact</h2>
+          <p>coming soon</p>
+        </div>
+      </section>
+    </main>
 
     <script>
       const prelude = document.querySelector(".prelude");
