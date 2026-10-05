@@ -237,6 +237,106 @@
           white-space: nowrap;
           border: 0;
         }
+
+        .mobile-contact {
+          --stretch-progress: 0;
+          display: block !important;
+          min-height: 370svh;
+          padding: 0;
+          overflow: clip;
+          color: #f7eee0;
+          text-align: left !important;
+          background:
+            radial-gradient(ellipse 58% 30% at 45% 0%, rgb(234 137 43 / 56%), transparent 72%),
+            radial-gradient(ellipse 30% 28% at 8% 24%, rgb(147 62 11 / 36%), transparent 78%),
+            repeating-radial-gradient(circle at 15% 22%, rgb(255 198 118 / 18%) 0 0.6px, transparent 0.8px 3px),
+            linear-gradient(135deg, #1d1007 0%, #120c08 50%, #0d0a08 100%);
+          background-size: auto, auto, 9px 11px, auto;
+        }
+
+        .mobile-contact-stage {
+          position: sticky;
+          top: 0;
+          display: flex;
+          min-height: 100svh;
+          padding: 28px 20px 24px;
+          flex-direction: column;
+          align-items: center;
+        }
+
+        .mobile-contact-intro {
+          position: absolute;
+          bottom: 34svh;
+          left: 20px;
+          width: calc(100% - 40px);
+          margin: 0;
+          color: inherit;
+          font-size: clamp(10px, 2.65vw, 13px);
+          font-weight: bold;
+          line-height: 1.12;
+          text-align: center;
+        }
+
+        .mobile-contact-intro span {
+          display: block;
+          margin-bottom: calc(1em * var(--stretch-progress) * var(--line-growth));
+          transform: scaleY(calc(1 + var(--stretch-progress) * var(--line-growth)));
+          transform-origin: center top;
+          transition: margin-bottom 35ms linear, transform 35ms linear;
+          white-space: nowrap;
+        }
+
+        .mobile-contact-intro span:last-child {
+          margin-bottom: 0;
+        }
+
+        .mobile-contact-details {
+          width: 100%;
+          margin-top: auto;
+          text-align: center;
+        }
+
+        .mobile-contact-details h2 {
+          margin: 0 0 14px;
+          font-size: 18px;
+        }
+
+        .mobile-contact-links {
+          display: flex;
+          flex-wrap: wrap;
+          justify-content: center;
+          gap: 8px 16px;
+        }
+
+        .mobile-contact-links a {
+          min-height: 44px;
+          padding: 12px 0;
+          color: inherit;
+          font-size: 14px;
+          line-height: 20px;
+          text-decoration: none;
+        }
+
+        .mobile-contact-links a:focus-visible {
+          outline: 2px solid currentColor;
+          outline-offset: 4px;
+        }
+
+        .mobile-contact-cue {
+          margin: 10px 0 0;
+          font-size: 11px;
+          text-align: center;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .mobile-contact {
+            --stretch-progress: 0 !important;
+          }
+
+          .mobile-contact-intro span {
+            transition: none;
+          }
+        }
       }
     </style>
   </head>
@@ -274,10 +374,25 @@
         </div>
       </section>
 
-      <section class="mobile-section" aria-labelledby="contact-title">
-        <div>
-          <h2 id="contact-title">Contact</h2>
-          <p>coming soon</p>
+      <section class="mobile-section mobile-contact" data-mobile-contact-section aria-labelledby="contact-title">
+        <div class="mobile-contact-stage">
+          <p class="mobile-contact-intro" aria-label="Introduction">
+            <span style="--line-growth: .75">Hi! I’m a final year computing and</span>
+            <span style="--line-growth: .66">software systems major at the</span>
+            <span style="--line-growth: .57">University of Melbourne. I have</span>
+            <span style="--line-growth: .48">stumbled here by chance; please explore</span>
+            <span style="--line-growth: .39">who I am beyond what is written on my CV.</span>
+          </p>
+          <div class="mobile-contact-details">
+            <h2 id="contact-title">Contact</h2>
+            <nav class="mobile-contact-links" aria-label="Contact links">
+              <a href="#" aria-label="LinkedIn placeholder">LinkedIn</a>
+              <a href="#" aria-label="GitHub placeholder">GitHub</a>
+              <a href="#" aria-label="Email placeholder">Email</a>
+              <a href="Emma-Xu-CV.pdf" download>CV</a>
+            </nav>
+            <p class="mobile-contact-cue" aria-hidden="true">scroll? ↓</p>
+          </div>
         </div>
       </section>
     </main>
@@ -509,6 +624,105 @@
         });
         link.addEventListener("focus", typeLabel);
       });
+
+      const mobileContactSection = document.querySelector(
+        "[data-mobile-contact-section]"
+      );
+      const mobileContactIntro = document.querySelector(
+        ".mobile-contact-intro"
+      );
+      const mobileContactStage = document.querySelector(
+        ".mobile-contact-stage"
+      );
+      let mobileContactScrollFrame;
+      let mobileMaximumStretchProgress = 1;
+
+      function measureMobileContactStretch() {
+        if (!mobileContactSection || prefersReducedMotion.matches) {
+          mobileMaximumStretchProgress = 0;
+          return;
+        }
+
+        const firstLine = mobileContactIntro.querySelector("span");
+        const bottomOffsetFromStageTop = (amount) => {
+          mobileContactSection.style.setProperty(
+            "--stretch-progress",
+            amount
+          );
+          return (
+            firstLine.getBoundingClientRect().bottom -
+            mobileContactStage.getBoundingClientRect().top
+          );
+        };
+
+        let lowerBound = 0;
+        let upperBound = 1;
+        while (
+          bottomOffsetFromStageTop(upperBound) > -2 &&
+          upperBound < 64
+        ) {
+          lowerBound = upperBound;
+          upperBound *= 2;
+        }
+
+        for (let iteration = 0; iteration < 14; iteration += 1) {
+          const midpoint = (lowerBound + upperBound) / 2;
+          if (bottomOffsetFromStageTop(midpoint) > -2) {
+            lowerBound = midpoint;
+          } else {
+            upperBound = midpoint;
+          }
+        }
+
+        mobileMaximumStretchProgress = upperBound;
+      }
+
+      function updateMobileContactStretch() {
+        mobileContactScrollFrame = undefined;
+        if (!mobileContactSection) return;
+
+        if (prefersReducedMotion.matches) {
+          mobileContactSection.style.setProperty("--stretch-progress", 0);
+          return;
+        }
+
+        const sectionBounds = mobileContactSection.getBoundingClientRect();
+        const scrollRange = Math.max(
+          mobileContactSection.offsetHeight - window.innerHeight,
+          1
+        );
+        const progress = Math.min(
+          1,
+          Math.max(0, -sectionBounds.top / scrollRange)
+        );
+        mobileContactSection.style.setProperty(
+          "--stretch-progress",
+          (progress * mobileMaximumStretchProgress).toFixed(3)
+        );
+      }
+
+      function requestMobileContactStretch() {
+        if (!mobileContactScrollFrame) {
+          mobileContactScrollFrame = window.requestAnimationFrame(
+            updateMobileContactStretch
+          );
+        }
+      }
+
+      window.addEventListener("scroll", requestMobileContactStretch, {
+        passive: true,
+      });
+      function handleMobileContactResize() {
+        measureMobileContactStretch();
+        requestMobileContactStretch();
+      }
+      window.addEventListener("resize", handleMobileContactResize);
+      prefersReducedMotion.addEventListener(
+        "change",
+        handleMobileContactResize
+      );
+      measureMobileContactStretch();
+      updateMobileContactStretch();
     </script>
   </body>
 </html>
