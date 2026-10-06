@@ -21,29 +21,20 @@
         color: var(--contact-ink);
         font-family: "Courier New", Courier, monospace;
       }
-      .contact-background,
-      .contact-texture {
+      .contact-background {
         position: fixed;
         inset: 0;
         pointer-events: none;
-      }
-      .contact-background {
         z-index: 0;
-        background:
-          radial-gradient(ellipse 38% 32% at 43% -8%, rgb(234 137 43 / 62%), transparent 72%),
-          radial-gradient(ellipse 22% 26% at 10% 20%, rgb(147 62 11 / 44%), transparent 76%),
-          radial-gradient(ellipse 18% 23% at 78% 16%, rgb(106 41 7 / 20%), transparent 80%),
-          linear-gradient(135deg, #1d1007 0%, #120c08 46%, #0d0a08 100%);
+        overflow: hidden;
+        background: #130d08;
       }
-      .contact-texture {
-        z-index: 1;
-        opacity: 0.38;
-        background-image:
-          repeating-radial-gradient(circle at 15% 22%, rgb(255 198 118 / 22%) 0 0.6px, transparent 0.8px 3px),
-          repeating-radial-gradient(circle at 72% 45%, rgb(255 226 176 / 13%) 0 0.5px, transparent 0.8px 4px),
-          repeating-linear-gradient(115deg, transparent 0 5px, rgb(255 201 125 / 5%) 6px 7px, transparent 8px 12px);
-        background-size: 9px 11px, 13px 15px, 17px 17px;
-        mix-blend-mode: screen;
+      .contact-background canvas {
+        display: block;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(105deg, #5b250f 0%, #25130c 31%, transparent 63%),
+          linear-gradient(168deg, #59230f 0%, #130d08 37%);
       }
       .contact-stage {
         position: fixed;
@@ -81,11 +72,15 @@
         position: absolute;
         top: 55%;
         left: 50%;
-        display: flex;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
         align-items: center;
-        gap: 16px;
+        gap: clamp(24px, 3vw, 36px);
+        width: max-content;
         transform: translate(-50%, -50%);
       }
+      .contact-nav > a { justify-self: end; }
+      .contact-menu { justify-self: start; }
       .contact-nav a,
       .contact-trigger {
         min-height: 44px;
@@ -99,6 +94,7 @@
         line-height: 20px;
         text-decoration: none;
       }
+      .contact-trigger { font-weight: 700; }
       .contact-nav a:hover,
       .contact-trigger:hover { color: #fff9ef; }
       .contact-nav a:focus-visible,
@@ -179,6 +175,7 @@
         .contact-nav {
           top: auto;
           bottom: 11svh;
+          display: flex;
           width: calc(100% - 40px);
           flex-wrap: wrap;
           justify-content: center;
@@ -201,9 +198,10 @@
       }
     </style>
   </head>
-  <body data-stretch-section>
-    <div class="contact-background" aria-hidden="true"></div>
-    <div class="contact-texture" aria-hidden="true"></div>
+  <body data-stretch-section data-liquid-root>
+    <div class="contact-background" aria-hidden="true">
+      <canvas data-liquid-surface></canvas>
+    </div>
     <main class="contact-stage">
       <p class="contact-intro" aria-label="Introduction">
         <span class="intro-line" style="--line-growth: 1.65">Hi! I’m a final year computing and software systems major at the</span>
@@ -359,5 +357,6 @@
         item.addEventListener("blur", restoreLabel);
       });
     </script>
+    <script src="liquid.js"></script>
   </body>
 </html>
