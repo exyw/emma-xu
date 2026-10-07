@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Contact | Emma Xu</title>
+    <link rel="stylesheet" href="global.css">
     <style>
       :root {
         color-scheme: dark;
@@ -68,41 +69,19 @@
       .intro-line:last-child {
         margin-bottom: 0;
       }
-      .contact-nav {
-        position: absolute;
+      .contact-page .site-nav {
         top: 55%;
-        left: 50%;
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        align-items: center;
-        gap: clamp(24px, 3vw, 36px);
-        width: max-content;
-        transform: translate(-50%, -50%);
-      }
-      .contact-nav > a { justify-self: end; }
-      .contact-menu { justify-self: start; }
-      .contact-nav a,
-      .contact-trigger {
-        min-height: 44px;
-        padding: 12px 0;
-        border: 0;
-        background: transparent;
-        color: inherit;
-        cursor: pointer;
-        font: inherit;
-        font-size: clamp(12px, 0.9vw, 15px);
-        line-height: 20px;
-        text-decoration: none;
-      }
-      .contact-trigger { font-weight: 700; }
-      .contact-nav a:hover,
-      .contact-trigger:hover { color: #fff9ef; }
-      .contact-nav a:focus-visible,
-      .contact-trigger:focus-visible {
-        outline: 2px solid #fff9ef;
-        outline-offset: 5px;
+        z-index: 3;
+        color: #fff;
+        font-family: courier, monospace;
       }
       .contact-menu { position: relative; }
+      .contact-submenu a {
+        min-height: 44px;
+        padding: 12px 0;
+        font-size: clamp(12px, 0.9vw, 15px);
+        line-height: 20px;
+      }
       .contact-submenu {
         position: absolute;
         top: 50%;
@@ -111,18 +90,21 @@
         align-items: center;
         gap: 14px;
         padding-left: 16px;
+        visibility: hidden;
         opacity: 0;
         pointer-events: none;
         transform: translateY(-50%) translateX(-8px);
-        transition: opacity 180ms ease, transform 180ms ease;
+        transition: opacity 180ms ease, transform 180ms ease, visibility 0s linear 180ms;
         white-space: nowrap;
       }
       .contact-menu:hover .contact-submenu,
       .contact-menu:focus-within .contact-submenu,
       .contact-menu.is-open .contact-submenu {
+        visibility: visible;
         opacity: 1;
         pointer-events: auto;
         transform: translateY(-50%) translateX(0);
+        transition-delay: 0s;
       }
       .scroll-cue {
         position: absolute;
@@ -139,24 +121,11 @@
         font-size: 18px;
         line-height: 1;
       }
-      .is-typing::after {
-        content: "";
-        display: inline-block;
-        width: 0.55ch;
-        height: 0.85em;
-        margin-left: 0.15ch;
-        vertical-align: -0.15em;
-        background: currentColor;
-        animation: cursor-blink 1s steps(1) infinite;
-      }
-      @keyframes cursor-blink { 50% { opacity: 0; } }
       @media (prefers-reduced-motion: reduce) {
         .contact-intro { --stretch-progress: 0 !important; }
         .intro-line,
-        .contact-submenu,
-        .is-typing::after {
+        .contact-submenu {
           transition: none;
-          animation: none;
         }
       }
       @media (max-width: 640px) {
@@ -172,33 +141,35 @@
           font-size: clamp(10px, 2.7vw, 13px);
         }
         .intro-line { white-space: normal; }
-        .contact-nav {
+        .contact-page .site-nav {
           top: auto;
           bottom: 11svh;
-          display: flex;
-          width: calc(100% - 40px);
-          flex-wrap: wrap;
-          justify-content: center;
-          gap: 4px 16px;
+          transform: translateX(-50%);
         }
-        .contact-menu { display: contents; }
-        .contact-trigger { display: none; }
+        .contact-menu { position: static; }
         .contact-submenu {
-          position: static;
-          display: flex;
-          flex-basis: 100%;
+          top: 100%;
+          left: 50%;
+          width: min(calc(100vw - 32px), 360px);
+          flex-wrap: wrap;
           justify-content: center;
           gap: 12px;
           padding: 0;
+          visibility: visible;
           opacity: 1;
           pointer-events: auto;
-          transform: none;
+          transform: translateX(-50%);
+          transition: none;
         }
+        .contact-menu:hover .contact-submenu,
+        .contact-menu:focus-within .contact-submenu,
+        .contact-menu.is-open .contact-submenu { transform: translateX(-50%); }
+        .contact-submenu a { min-height: 32px; padding: 6px 0; }
         .scroll-cue { display: none; }
       }
     </style>
   </head>
-  <body data-stretch-section data-liquid-root>
+  <body class="contact-page" data-stretch-section data-liquid-root>
     <div class="contact-background" aria-hidden="true">
       <canvas data-liquid-surface></canvas>
     </div>
@@ -211,15 +182,19 @@
         <span class="intro-line" style="--line-growth: .57">Claude combined, but I hope to present my authentic self through this</span>
         <span class="intro-line" style="--line-growth: .30">website. I want to share my journey and stay a creative mind.</span>
       </p>
-      <nav class="contact-nav" aria-label="Contact navigation">
-        <a class="typewriter-label" href="index.html">Emma Xu</a>
+      <nav class="site-nav is-ready" aria-label="Main navigation">
+        <div class="page-menu">
+          <a class="extra-link" href="projects.html">Projects</a>
+          <a href="index.html">Emma Xu</a>
+          <a class="extra-link" href="who-i-am.html">Who I am</a>
+        </div>
         <div class="contact-menu">
-          <button class="contact-trigger typewriter-label" type="button" aria-controls="contact-links" aria-expanded="false">Contact</button>
+          <a class="contact-link selected" href="#contact-links" aria-current="page" aria-controls="contact-links" aria-expanded="false">Contact</a>
           <div class="contact-submenu" id="contact-links">
-            <a class="typewriter-label" href="#" aria-label="LinkedIn placeholder">LinkedIn</a>
-            <a class="typewriter-label" href="#" aria-label="GitHub placeholder">GitHub</a>
-            <a class="typewriter-label" href="#" aria-label="Email placeholder">Email</a>
-            <a class="typewriter-label" href="Emma-Xu-CV.pdf" download>CV</a>
+            <a href="#" aria-label="LinkedIn placeholder">LinkedIn</a>
+            <a href="#" aria-label="GitHub placeholder">GitHub</a>
+            <a href="#" aria-label="Email placeholder">Email</a>
+            <a href="Emma-Xu-CV.pdf" download>CV</a>
           </div>
         </div>
       </nav>
@@ -292,13 +267,17 @@
       measureMaximumStretch();
       updateStretch();
       const contactMenu = document.querySelector(".contact-menu");
-      const contactTrigger = document.querySelector(".contact-trigger");
+      const contactTrigger = document.querySelector(".contact-link");
+      const mobileContactMenu = window.matchMedia("(max-width: 640px)");
       function setContactMenuOpen(isOpen) {
-        contactMenu.classList.toggle("is-open", isOpen);
-        contactTrigger.setAttribute("aria-expanded", String(isOpen));
+        const shouldOpen = mobileContactMenu.matches || isOpen;
+        contactMenu.classList.toggle("is-open", shouldOpen);
+        contactTrigger.setAttribute("aria-expanded", String(shouldOpen));
       }
-      contactTrigger.addEventListener("click", () => {
-        setContactMenuOpen(!contactMenu.classList.contains("is-open"));
+      contactTrigger.addEventListener("click", (event) => {
+        event.preventDefault();
+        if (mobileContactMenu.matches) return;
+        setContactMenuOpen(true);
       });
       contactMenu.addEventListener("mouseenter", () => setContactMenuOpen(true));
       contactMenu.addEventListener("mouseleave", () => {
@@ -310,53 +289,12 @@
           if (!contactMenu.contains(document.activeElement)) setContactMenuOpen(false);
         }, 0);
       });
-      document.querySelectorAll(".typewriter-label").forEach((item) => {
-        const label = item.textContent.trim();
-        const text = document.createElement("span");
-        let typingTimer;
-        let cursorTimer;
-        let isHovered = false;
-        item.setAttribute("aria-label", item.getAttribute("aria-label") || label);
-        item.textContent = "";
-        text.setAttribute("aria-hidden", "true");
-        text.textContent = label;
-        item.append(text);
-        function restoreLabel() {
-          window.clearTimeout(typingTimer);
-          window.clearTimeout(cursorTimer);
-          item.classList.remove("is-typing");
-          text.textContent = label;
-        }
-        function typeLabel() {
-          if (prefersReducedMotion.matches) return;
-          window.clearTimeout(typingTimer);
-          window.clearTimeout(cursorTimer);
-          item.classList.add("is-typing");
-          text.textContent = "";
-          let index = 0;
-          function typeNextCharacter() {
-            text.textContent = label.slice(0, index + 1);
-            index += 1;
-            if (index < label.length) {
-              typingTimer = window.setTimeout(typeNextCharacter, 45 + Math.random() * 145);
-            } else if (isHovered) {
-              cursorTimer = window.setTimeout(typeLabel, 520);
-            }
-          }
-          typeNextCharacter();
-        }
-        item.addEventListener("mouseenter", () => {
-          isHovered = true;
-          typeLabel();
-        });
-        item.addEventListener("mouseleave", () => {
-          isHovered = false;
-          restoreLabel();
-        });
-        item.addEventListener("focus", typeLabel);
-        item.addEventListener("blur", restoreLabel);
+      mobileContactMenu.addEventListener("change", () => {
+        setContactMenuOpen(mobileContactMenu.matches);
       });
+      setContactMenuOpen(mobileContactMenu.matches);
     </script>
+    <script src="navigation.js"></script>
     <script src="liquid.js"></script>
   </body>
 </html>
