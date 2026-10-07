@@ -42,7 +42,7 @@
         top: 50%;
         left: calc(50% - var(--half-nav-gap));
         pointer-events: none;
-        font-size: 20px;
+        font-size: 16px;
         font-weight: bold;
         transform: translate(-100%, -50%);
         white-space: nowrap;
@@ -137,6 +137,127 @@
           white-space: nowrap;
           border: 0;
         }
+
+        .mobile-contact {
+          --stretch-progress: 0;
+          position: relative;
+          isolation: isolate;
+          display: block !important;
+          min-height: 370svh;
+          padding: 0;
+          overflow: clip;
+          color: #f7eee0;
+          text-align: left !important;
+          background: #130d08;
+        }
+
+        .mobile-contact-viewport {
+          position: sticky;
+          top: 0;
+          z-index: 0;
+          width: 100%;
+          height: 100svh;
+          margin-bottom: -100svh;
+          pointer-events: none;
+          overflow: hidden;
+        }
+
+        .mobile-contact-surface {
+          position: absolute;
+          inset: 0;
+          display: block;
+          width: 100%;
+          height: 100%;
+          background: linear-gradient(105deg, #5b250f 0%, #25130c 31%, transparent 63%),
+            linear-gradient(168deg, #59230f 0%, #130d08 37%);
+        }
+
+        .mobile-contact-stage {
+          position: sticky;
+          top: 0;
+          z-index: 1;
+          display: flex;
+          box-sizing: border-box;
+          width: 100%;
+          min-height: 100svh;
+          padding: 28px 20px 24px;
+          flex-direction: column;
+          align-items: center;
+        }
+
+        .mobile-contact .mobile-contact-intro {
+          position: absolute;
+          bottom: 34svh;
+          left: 20px;
+          width: calc(100% - 40px);
+          margin: 0;
+          color: inherit;
+          font-size: clamp(10px, 2.65vw, 13px);
+          font-weight: bold;
+          line-height: 1.12;
+          text-align: center;
+        }
+
+        .mobile-contact-intro span {
+          display: block;
+          margin-bottom: calc(1em * var(--stretch-progress) * var(--line-growth));
+          transform: scaleY(calc(1 + var(--stretch-progress) * var(--line-growth)));
+          transform-origin: center top;
+          transition: margin-bottom 35ms linear, transform 35ms linear;
+          white-space: nowrap;
+        }
+
+        .mobile-contact-intro span:last-child {
+          margin-bottom: 0;
+        }
+
+        .mobile-contact-details {
+          width: 100%;
+          margin-top: auto;
+          text-align: center;
+        }
+
+        .mobile-contact-details h2 {
+          margin: 0 0 14px;
+          font-size: 18px;
+        }
+
+        .mobile-contact-links {
+          display: flex;
+          flex-wrap: wrap;
+          justify-content: center;
+          gap: 8px 16px;
+        }
+
+        .mobile-contact-links a {
+          min-height: 44px;
+          padding: 12px 0;
+          color: inherit;
+          font-size: 14px;
+          line-height: 20px;
+          text-decoration: none;
+        }
+
+        .mobile-contact-links a:focus-visible {
+          outline: 2px solid currentColor;
+          outline-offset: 4px;
+        }
+
+        .mobile-contact .mobile-contact-cue {
+          margin: 10px 0 0;
+          font-size: 11px;
+          text-align: center;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .mobile-contact {
+            --stretch-progress: 0 !important;
+          }
+
+          .mobile-contact-intro span {
+            transition: none;
+          }
+        }
       }
     </style>
   </head>
@@ -174,10 +295,28 @@
         </div>
       </section>
 
-      <section class="mobile-section" aria-labelledby="contact-title">
-        <div>
-          <h2 id="contact-title">Contact</h2>
-          <p>coming soon</p>
+      <section class="mobile-section mobile-contact" data-mobile-contact-section data-liquid-root aria-labelledby="contact-title">
+        <div class="mobile-contact-viewport" aria-hidden="true">
+          <canvas class="mobile-contact-surface" data-liquid-surface></canvas>
+        </div>
+        <div class="mobile-contact-stage">
+          <p class="mobile-contact-intro" aria-label="Introduction">
+            <span style="--line-growth: .75">Hi! I’m a final year computing and</span>
+            <span style="--line-growth: .66">software systems major at the</span>
+            <span style="--line-growth: .57">University of Melbourne. I have</span>
+            <span style="--line-growth: .48">stumbled here by chance; please explore</span>
+            <span style="--line-growth: .39">who I am beyond what is written on my CV.</span>
+          </p>
+          <div class="mobile-contact-details">
+            <h2 id="contact-title">Contact</h2>
+            <nav class="mobile-contact-links" aria-label="Contact links">
+              <a href="#" aria-label="LinkedIn placeholder">LinkedIn</a>
+              <a href="#" aria-label="GitHub placeholder">GitHub</a>
+              <a href="#" aria-label="Email placeholder">Email</a>
+              <a href="Emma-Xu-CV.pdf" download>CV</a>
+            </nav>
+            <p class="mobile-contact-cue" aria-hidden="true">scroll? ↓</p>
+          </div>
         </div>
       </section>
     </main>

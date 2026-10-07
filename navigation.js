@@ -28,7 +28,7 @@
 
     lockWidth();
     window.addEventListener("resize", lockWidth);
-    link.setAttribute("aria-label", label);
+    if (!link.hasAttribute("aria-label")) link.setAttribute("aria-label", label);
     link.textContent = "";
     text.className = "nav-link-text";
     text.setAttribute("aria-hidden", "true");
