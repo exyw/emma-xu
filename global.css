@@ -1,0 +1,114 @@
+body {
+  min-height: 100vh;
+  margin: 0;
+  background: radial-gradient(circle at center, #EDE4D3 0%, #B6A58D 100%);
+  font-family: courier, monospace;
+}
+
+.site-nav {
+  --half-nav-gap: clamp(12px, 1.5vw, 18px);
+  --link-padding-x: 10px;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: center;
+  gap: calc(2 * var(--half-nav-gap) - 2 * var(--link-padding-x));
+  padding: 10px;
+  transform: translate(-50%, -50%);
+  white-space: nowrap;
+  visibility: hidden;
+}
+
+.site-nav.is-ready {
+  visibility: visible;
+}
+
+.site-nav a {
+  box-sizing: border-box;
+  color: inherit;
+  display: block;
+  font-size: 20px;
+  padding: 4px var(--link-padding-x);
+  text-decoration: none;
+}
+
+.site-nav a.selected {
+  font-weight: bold;
+}
+
+.site-nav a:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 5px;
+}
+
+.page-menu {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  text-align: right;
+}
+
+.contact-link {
+  text-align: left;
+}
+
+.site-nav .extra-link {
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(8px);
+  transition:
+    opacity 200ms ease,
+    transform 200ms ease,
+    visibility 0s linear 200ms;
+}
+
+.site-nav .extra-link:last-child {
+  transform: translateY(-8px);
+}
+
+.site-nav .extra-link.selected,
+.site-nav:hover .extra-link,
+.site-nav:focus-within .extra-link {
+  visibility: visible;
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+  transition-delay: 0s;
+}
+
+.site-nav a.is-typing::after {
+  content: "";
+  display: inline-block;
+  width: 0.6ch;
+  height: 0.8em;
+  margin-left: 0.15ch;
+  vertical-align: -0.15em;
+  background: currentColor;
+  animation: cursor-blink 1000ms steps(1) infinite;
+}
+
+.coming-soon {
+  position: absolute;
+  top: calc(50% + 92px);
+  width: 100%;
+  font-size: 16px;
+  text-align: center;
+}
+
+@keyframes cursor-blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+@media (max-width: 640px) {
+  body:not(.home-page) .site-nav .extra-link {
+    visibility: visible;
+    opacity: 1;
+    pointer-events: auto;
+    transform: none;
+  }
+}
