@@ -105,14 +105,13 @@
   pointer-events: none;
 }
 
-.who-page .site-nav a:not(.extra-link) {
+.who-page .site-nav .contact-link {
   pointer-events: auto;
 }
 
 .who-page .site-nav .page-menu {
   align-items: flex-start;
   margin-left: 14px;
-  transform: translateY(-32px);
 }
 
 @media (max-width: 640px) {
@@ -121,13 +120,12 @@
     top: auto;
     left: auto;
     width: auto;
-    margin: 16px 12px 0;
+    margin: 32px 12px 0;
     transform: none;
   }
 
   .who-page .site-nav .page-menu {
     margin-left: 0;
-    transform: none;
   }
 
   .who-main {

@@ -8,6 +8,7 @@ body {
 .site-nav {
   --half-nav-gap: clamp(12px, 1.5vw, 18px);
   --link-padding-x: 10px;
+  --nav-row-height: 28px;
   position: absolute;
   top: 50%;
   left: 50%;
@@ -30,6 +31,7 @@ body {
   color: inherit;
   display: block;
   font-size: 16px;
+  line-height: 20px;
   padding: 4px var(--link-padding-x);
   text-decoration: none;
 }
@@ -48,13 +50,27 @@ body {
   flex-direction: column;
   align-items: flex-end;
   text-align: right;
+  pointer-events: none;
+  transform: translateY(var(--selected-row-offset, 0px));
+}
+
+.page-menu:has(> a:first-child.selected) {
+  --selected-row-offset: var(--nav-row-height);
+}
+
+.page-menu:has(> a:last-child.selected) {
+  --selected-row-offset: calc(0px - var(--nav-row-height));
+}
+
+.page-menu > a.selected {
+  pointer-events: auto;
 }
 
 .contact-link {
   text-align: left;
 }
 
-.site-nav .extra-link {
+.page-menu > a:not(.selected) {
   visibility: hidden;
   opacity: 0;
   pointer-events: none;
@@ -65,13 +81,14 @@ body {
     visibility 0s linear 200ms;
 }
 
-.site-nav .extra-link:last-child {
+.page-menu > a:last-child:not(.selected) {
   transform: translateY(-8px);
 }
 
-.site-nav .extra-link.selected,
-.site-nav:hover .extra-link,
-.site-nav:focus-within .extra-link {
+.page-menu:hover > a:not(.selected),
+.page-menu:focus-within > a:not(.selected),
+.site-nav:has(.contact-link.selected):hover .page-menu > a,
+.site-nav:has(.contact-link.selected):focus-within .page-menu > a {
   visibility: visible;
   opacity: 1;
   pointer-events: auto;
@@ -104,8 +121,14 @@ body {
   }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .page-menu > a:not(.selected) {
+    transition: none;
+  }
+}
+
 @media (max-width: 640px) {
-  body:not(.home-page) .site-nav .extra-link {
+  body:not(.home-page) .page-menu > a:not(.selected) {
     visibility: visible;
     opacity: 1;
     pointer-events: auto;
