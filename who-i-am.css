@@ -8,6 +8,7 @@
   box-sizing: border-box;
   display: grid;
   min-height: 100svh;
+  overflow-x: clip;
   padding: 40px 24px;
   place-items: center;
 }
@@ -16,29 +17,27 @@
   position: relative;
   isolation: isolate;
   width: clamp(220px, calc((100svh - 80px) * 276 / 900), 276px);
-  max-width: calc(100vw - 40px);
+  max-width: calc(100vw - 104px);
   aspect-ratio: 276 / 900;
   flex: none;
   transform: translate(9px, 10px);
 }
 
-.who-figure__silhouette,
-.who-figure__glitch {
+.who-figure__motion {
   position: absolute;
   inset: 0;
+  will-change: transform;
+}
+
+.who-figure__art {
+  position: absolute;
+  top: 0;
+  left: -31.1594%;
   display: block;
-  width: 100%;
+  width: 162.3188%;
   height: 100%;
+  overflow: visible;
   pointer-events: none;
-}
-
-.who-figure__silhouette {
-  z-index: 0;
-}
-
-/* Reserved for a later masked glitch treatment; kept separate from the keepsakes. */
-.who-figure__glitch[hidden] {
-  display: none;
 }
 
 .who-keepsake {
@@ -55,10 +54,7 @@
   -webkit-tap-highlight-color: transparent;
 }
 
-.who-keepsake.is-active {
-  z-index: 2;
-}
-
+.who-keepsake.is-active { z-index: 2; }
 .who-keepsake:focus-visible {
   outline: 2px solid #2b2118;
   outline-offset: 4px;
@@ -91,9 +87,7 @@
   transition: opacity 200ms ease;
 }
 
-.who-keepsake.is-active .who-keepsake__original {
-  opacity: 1;
-}
+.who-keepsake.is-active .who-keepsake__original { opacity: 1; }
 
 .who-page .site-nav {
   z-index: 5;
@@ -105,10 +99,7 @@
   pointer-events: none;
 }
 
-.who-page .site-nav .contact-link {
-  pointer-events: auto;
-}
-
+.who-page .site-nav .contact-link { pointer-events: auto; }
 .who-page .site-nav .page-menu {
   align-items: flex-start;
   margin-left: 14px;
@@ -123,43 +114,19 @@
     margin: 32px 12px 0;
     transform: none;
   }
-
-  .who-page .site-nav .page-menu {
-    margin-left: 0;
-  }
-
+  .who-page .site-nav .page-menu { margin-left: 0; }
   .who-main {
     min-height: 0;
     padding: 28px 20px 60px;
   }
-
   .who-figure {
-    width: min(276px, calc(100vw - 40px));
+    width: min(276px, calc(100vw - 88px));
+    max-width: none;
     transform: none;
-  }
-
-  .mobile-who {
-    display: flex;
-    min-height: 0;
-    padding: 48px 20px 56px;
-    flex-direction: column;
-    align-items: center;
-    gap: 20px;
-  }
-
-  .mobile-who h2,
-  .mobile-who p {
-    flex: none;
-  }
-
-  .mobile-who p {
-    margin-top: 0;
-    font-size: 13px;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .who-keepsake__original {
-    transition: none;
-  }
+  .who-figure__motion { will-change: auto; }
+  .who-keepsake__original { transition: none; }
 }

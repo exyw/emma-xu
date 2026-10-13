@@ -19,6 +19,7 @@ This is a living guide for building Emma Xu's site. Read it before changing a pa
 5. Make layouts work on narrow screens as well as desktop. The existing mobile breakpoint is `640px`; follow it where a shared behavior needs to stay consistent. Avoid horizontal overflow and check that controls remain reachable.
 6. Respect `prefers-reduced-motion` for animation and transitions. Keep visible focus styles for interactive elements.
 7. Reuse assets from `assets/` where they fit. Use relative paths so pages work as static files.
+8. For animated interactive artwork, keep its layout and interaction region stationary and animate a child layer. Keep hover, focus, and touch preview state independent of the motion clock so animation cannot reset an active preview.
 
 ## Before finishing a page change
 
