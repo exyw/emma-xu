@@ -14,8 +14,7 @@
       * { box-sizing: border-box; }
       html { background: var(--contact-background); }
       body {
-        --stretch-progress: 0;
-        min-height: 580vh;
+        min-height: calc(100vh + var(--scroll-distance, 480vh));
         margin: 0;
         overflow-x: hidden;
         background: var(--contact-background);
@@ -45,6 +44,9 @@
       }
       .contact-intro {
         position: absolute;
+        display: flex;
+        flex-direction: column;
+        gap: var(--line-gap, 0px);
         top: auto;
         bottom: 59vh;
         left: 50%;
@@ -57,17 +59,15 @@
         text-align: center;
         transform: translateX(-50%);
       }
+      .intro-row {
+        display: block;
+        flex: none;
+      }
       .intro-line {
         display: block;
-        margin-bottom: calc(1em * var(--stretch-progress) * var(--line-growth));
-        transform: scaleY(calc(1 + var(--stretch-progress) * var(--line-growth)));
+        transform: scaleY(var(--line-scale, 1));
         transform-origin: center top;
-        transition: margin-bottom 35ms linear, transform 35ms linear;
         white-space: nowrap;
-      }
-
-      .intro-line:last-child {
-        margin-bottom: 0;
       }
       .contact-page .site-nav {
         top: 55%;
@@ -122,8 +122,6 @@
         line-height: 1;
       }
       @media (prefers-reduced-motion: reduce) {
-        .contact-intro { --stretch-progress: 0 !important; }
-        .intro-line,
         .contact-submenu {
           transition: none;
         }
@@ -175,12 +173,12 @@
     </div>
     <main class="contact-stage">
       <p class="contact-intro" aria-label="Introduction">
-        <span class="intro-line" style="--line-growth: 1.65">Hi! I’m a final year computing and software systems major at the</span>
-        <span class="intro-line" style="--line-growth: 1.38">University of Melbourne. I have stumbled here by chance, please</span>
-        <span class="intro-line" style="--line-growth: 1.11">spend some time exploring who I am beyond what is written on my CV.</span>
-        <span class="intro-line" style="--line-growth: .84">I work with AI on the daily, so sometimes I sound like ChatGPT and</span>
-        <span class="intro-line" style="--line-growth: .57">Claude combined, but I hope to present my authentic self through this</span>
-        <span class="intro-line" style="--line-growth: .30">website. I want to share my journey and stay a creative mind.</span>
+        <span class="intro-row"><span class="intro-line">Hi! I’m a final year computing and software systems major at the</span></span>
+        <span class="intro-row"><span class="intro-line">University of Melbourne. If you have stumbled here by chance, please</span></span>
+        <span class="intro-row"><span class="intro-line">spend some time exploring who I am beyond what is written on my CV.</span></span>
+        <span class="intro-row"><span class="intro-line">I work with AI on the daily, so sometimes I sound like ChatGPT and</span></span>
+        <span class="intro-row"><span class="intro-line">Claude combined, but I hope to present my authentic self through this</span></span>
+        <span class="intro-row"><span class="intro-line">website. I want to share my journey and stay a creative mind.</span></span>
       </p>
       <nav class="site-nav is-ready" aria-label="Main navigation">
         <div class="page-menu">
@@ -201,74 +199,62 @@
       <div class="scroll-cue" aria-hidden="true"><span>scroll?</span><span>↓</span></div>
     </main>
     <script>
+      const textStretch = {
+        scrollDistance: 8, // Viewports of scrolling; lower values finish sooner.
+        topOvershootVh: 20, // How far the top line passes beyond the viewport at the end.
+        topGrowthWeight: 1.65, // Higher lines receive more of the total height increase.
+        bottomGrowthWeight: 0.1,
+        lineGap: 0, // Fixed space between lines, in pixels.
+      };
       const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
       const stretchSection = document.querySelector("[data-stretch-section]");
       const stretchIntro = document.querySelector(".contact-intro");
-      const stretchStage = document.querySelector(".contact-stage");
+      const stretchRows = [...stretchIntro.querySelectorAll(".intro-row")];
+      const stretchWeights = stretchRows.map((row, index) => {
+        const linePosition = stretchRows.length === 1 ? 0 : index / (stretchRows.length - 1);
+        return textStretch.topGrowthWeight +
+          (textStretch.bottomGrowthWeight - textStretch.topGrowthWeight) * linePosition;
+      });
+      const totalStretchWeight = stretchWeights.reduce((sum, weight) => sum + weight, 0);
+      const mobileContactMenu = window.matchMedia("(max-width: 640px)");
       let scrollFrame;
-      let maximumStretchProgress = 1;
+      stretchSection.style.setProperty("--scroll-distance", `${textStretch.scrollDistance * 100}vh`);
+      stretchIntro.style.setProperty("--line-gap", `${textStretch.lineGap}px`);
 
-      function measureMaximumStretch() {
-        if (prefersReducedMotion.matches) {
-          maximumStretchProgress = 0;
-          return;
-        }
-
-        const firstLine = stretchIntro.querySelector(".intro-line");
-        const bottomOffsetFromStageTop = (amount) => {
-          stretchSection.style.setProperty("--stretch-progress", amount);
-          return (
-            firstLine.getBoundingClientRect().bottom -
-            stretchStage.getBoundingClientRect().top
-          );
-        };
-
-        let lowerBound = 0;
-        let upperBound = 1;
-        while (bottomOffsetFromStageTop(upperBound) > -2 && upperBound < 64) {
-          lowerBound = upperBound;
-          upperBound *= 2;
-        }
-
-        for (let iteration = 0; iteration < 14; iteration += 1) {
-          const midpoint = (lowerBound + upperBound) / 2;
-          if (bottomOffsetFromStageTop(midpoint) > -2) {
-            lowerBound = midpoint;
-          } else {
-            upperBound = midpoint;
-          }
-        }
-
-        maximumStretchProgress = upperBound;
-      }
       function updateStretch() {
         scrollFrame = undefined;
-        if (prefersReducedMotion.matches) {
-          stretchSection.style.setProperty("--stretch-progress", 0);
+        if (prefersReducedMotion.matches || mobileContactMenu.matches) {
+          stretchRows.forEach((row) => {
+            row.style.height = "";
+            row.style.setProperty("--line-scale", 1);
+          });
           return;
         }
         const scrollRange = Math.max(document.documentElement.scrollHeight - window.innerHeight, 1);
         const progress = Math.min(1, Math.max(0, window.scrollY / scrollRange));
-        stretchSection.style.setProperty(
-          "--stretch-progress",
-          (progress * maximumStretchProgress).toFixed(3)
-        );
+        const baseLineHeight = parseFloat(getComputedStyle(stretchRows[0].firstElementChild).lineHeight);
+        const baseTextHeight = baseLineHeight * stretchRows.length +
+          textStretch.lineGap * (stretchRows.length - 1);
+        const finalTextHeight = stretchIntro.getBoundingClientRect().bottom +
+          window.innerHeight * textStretch.topOvershootVh / 100;
+        const extraHeight = Math.max(0, finalTextHeight - baseTextHeight);
+        stretchRows.forEach((row, index) => {
+          const lineHeight = baseLineHeight +
+            progress * extraHeight * stretchWeights[index] / totalStretchWeight;
+          const scale = lineHeight / baseLineHeight;
+          row.style.height = `${lineHeight.toFixed(3)}px`;
+          row.style.setProperty("--line-scale", scale.toFixed(4));
+        });
       }
       function requestStretchUpdate() {
         if (!scrollFrame) scrollFrame = window.requestAnimationFrame(updateStretch);
       }
       window.addEventListener("scroll", requestStretchUpdate, { passive: true });
-      function handleStretchResize() {
-        measureMaximumStretch();
-        requestStretchUpdate();
-      }
-      window.addEventListener("resize", handleStretchResize);
-      prefersReducedMotion.addEventListener("change", handleStretchResize);
-      measureMaximumStretch();
+      window.addEventListener("resize", requestStretchUpdate);
+      prefersReducedMotion.addEventListener("change", requestStretchUpdate);
       updateStretch();
       const contactMenu = document.querySelector(".contact-menu");
       const contactTrigger = document.querySelector(".contact-link");
-      const mobileContactMenu = window.matchMedia("(max-width: 640px)");
       function setContactMenuOpen(isOpen) {
         const shouldOpen = mobileContactMenu.matches || isOpen;
         contactMenu.classList.toggle("is-open", shouldOpen);
@@ -291,6 +277,7 @@
       });
       mobileContactMenu.addEventListener("change", () => {
         setContactMenuOpen(mobileContactMenu.matches);
+        requestStretchUpdate();
       });
       setContactMenuOpen(mobileContactMenu.matches);
     </script>
