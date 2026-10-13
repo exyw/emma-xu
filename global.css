@@ -85,6 +85,14 @@ body {
   transform: translateY(-8px);
 }
 
+.page-menu > a.always-visible {
+  visibility: visible;
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+  transition-delay: 0s;
+}
+
 .page-menu:hover > a:not(.selected),
 .page-menu:focus-within > a:not(.selected),
 .site-nav:has(.contact-link.selected):hover .page-menu > a,
