@@ -1,0 +1,167 @@
+/* The portrait SVG is a 276 × 900 coordinate plane. Keepsake geometry lives in who-i-am.js. */
+.who-page {
+  overflow-x: clip;
+  background: radial-gradient(ellipse at center, #ede4d3 0%, #d2c5b0 50%, #b6a58d 100%);
+}
+
+.who-main {
+  box-sizing: border-box;
+  display: grid;
+  min-height: 100svh;
+  padding: 40px 24px;
+  place-items: center;
+}
+
+.who-figure {
+  position: relative;
+  isolation: isolate;
+  width: clamp(220px, calc((100svh - 80px) * 276 / 900), 276px);
+  max-width: calc(100vw - 40px);
+  aspect-ratio: 276 / 900;
+  flex: none;
+  transform: translate(9px, 10px);
+}
+
+.who-figure__silhouette,
+.who-figure__glitch {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.who-figure__silhouette {
+  z-index: 0;
+}
+
+/* Reserved for a later masked glitch treatment; kept separate from the keepsakes. */
+.who-figure__glitch[hidden] {
+  display: none;
+}
+
+.who-keepsake {
+  position: absolute;
+  z-index: 1;
+  display: block;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.who-keepsake.is-active {
+  z-index: 2;
+}
+
+.who-keepsake:focus-visible {
+  outline: 2px solid #2b2118;
+  outline-offset: 4px;
+}
+
+.who-keepsake__ascii,
+.who-keepsake__original {
+  position: absolute;
+  display: block;
+  pointer-events: none;
+}
+
+.who-keepsake__ascii {
+  z-index: 1;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.who-keepsake__original {
+  z-index: 0;
+  top: 50%;
+  left: 50%;
+  width: var(--preview-width, 160%);
+  height: var(--preview-height, 160%);
+  object-fit: cover;
+  opacity: 0;
+  transform: translate(calc(-50% + var(--preview-x, 0px)), calc(-50% + var(--preview-y, 0px)));
+  transition: opacity 200ms ease;
+}
+
+.who-keepsake.is-active .who-keepsake__original {
+  opacity: 1;
+}
+
+.who-page .site-nav {
+  z-index: 5;
+  top: calc(50% - 8px);
+  display: flex;
+  box-sizing: border-box;
+  width: min(1010px, calc(100vw - 48px));
+  justify-content: space-between;
+  pointer-events: none;
+}
+
+.who-page .site-nav a:not(.extra-link) {
+  pointer-events: auto;
+}
+
+.who-page .site-nav .page-menu {
+  align-items: flex-start;
+  margin-left: 14px;
+  transform: translateY(-32px);
+}
+
+@media (max-width: 640px) {
+  .who-page .site-nav {
+    position: relative;
+    top: auto;
+    left: auto;
+    width: auto;
+    margin: 16px 12px 0;
+    transform: none;
+  }
+
+  .who-page .site-nav .page-menu {
+    margin-left: 0;
+    transform: none;
+  }
+
+  .who-main {
+    min-height: 0;
+    padding: 28px 20px 60px;
+  }
+
+  .who-figure {
+    width: min(276px, calc(100vw - 40px));
+    transform: none;
+  }
+
+  .mobile-who {
+    display: flex;
+    min-height: 0;
+    padding: 48px 20px 56px;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+  }
+
+  .mobile-who h2,
+  .mobile-who p {
+    flex: none;
+  }
+
+  .mobile-who p {
+    margin-top: 0;
+    font-size: 13px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .who-keepsake__original {
+    transition: none;
+  }
+}
