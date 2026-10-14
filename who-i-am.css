@@ -89,32 +89,7 @@
 
 .who-keepsake.is-active .who-keepsake__original { opacity: 1; }
 
-.who-page .site-nav {
-  z-index: 5;
-  top: calc(50% - 8px);
-  display: flex;
-  box-sizing: border-box;
-  width: min(1010px, calc(100vw - 48px));
-  justify-content: space-between;
-  pointer-events: none;
-}
-
-.who-page .site-nav .contact-link { pointer-events: auto; }
-.who-page .site-nav .page-menu {
-  align-items: flex-start;
-  margin-left: 14px;
-}
-
 @media (max-width: 640px) {
-  .who-page .site-nav {
-    position: relative;
-    top: auto;
-    left: auto;
-    width: auto;
-    margin: 32px 12px 0;
-    transform: none;
-  }
-  .who-page .site-nav .page-menu { margin-left: 0; }
   .who-main {
     min-height: 0;
     padding: 28px 20px 60px;

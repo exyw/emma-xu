@@ -53,7 +53,7 @@
       style: "mask-type: alpha",
     });
     silhouetteMask.append(svgElement("image", {
-      href: "assets/ascii/silhouette.svg", x: 0, y: 0,
+      href: "assets/contact/ascii/silhouette.svg", x: 0, y: 0,
       width: illustration.width, height: illustration.height,
       preserveAspectRatio: "none",
     }));
@@ -146,7 +146,7 @@
       if (item.original) {
         const original = document.createElement("img");
         original.className = "who-keepsake__original";
-        original.src = `assets/images/${item.original}`;
+        original.src = `assets/contact/images/${item.original}`;
         original.alt = "";
         original.setAttribute("aria-hidden", "true");
         original.draggable = false;
@@ -154,7 +154,7 @@
       }
       const ascii = document.createElement("img");
       ascii.className = "who-keepsake__ascii";
-      ascii.src = `assets/ascii/${item.ascii}`;
+      ascii.src = `assets/contact/ascii/${item.ascii}`;
       ascii.alt = "";
       ascii.setAttribute("aria-hidden", "true");
       ascii.draggable = false;
