@@ -22,7 +22,8 @@ This is a living guide for building Emma Xu's site. Read it before changing a pa
 6. Respect `prefers-reduced-motion` for animation and transitions. Keep visible focus styles for interactive elements.
 7. Reuse assets from `assets/` where they fit. Use relative paths so pages work as static files.
 8. For animated interactive artwork, keep its layout and interaction region stationary and animate a child layer. Keep hover, focus, and touch preview state independent of the motion clock so animation cannot reset an active preview.
-9. When outlined SVG artwork transforms, keep the supplied SVG as the settled view. Use its existing cutouts instead of adding rectangular masks around project slots. Keep placements in `projects-config.js` and regenerate the temporary sample field after artwork or placement changes. Its point cloud and echoes should follow one continuous sway clock. Keep the readable text and navigation outside that moving layer.
+9. When outlined SVG artwork transforms, keep the supplied SVG as the settled view. Use its existing cutouts instead of adding rectangular masks around project slots. Keep overview slots in `projects-config.js` and regenerate the temporary sample field after artwork or overview slot changes. Its point cloud and echoes should follow one continuous sway clock. Keep the readable text and navigation outside that moving layer.
+10. Configure each Projects original-image preview in `projects-config.js` relative to its ASCII slot. For offset previews, keep the visible original smaller than and inside the ASCII slot, using an inset edge or corner. WIT keeps its centered placement. Preview placement is specific to Projects; do not apply it to the Who I Am page.
 
 ## Before finishing a page change
 

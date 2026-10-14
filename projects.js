@@ -176,6 +176,7 @@
     original.alt = "";
     original.setAttribute("aria-hidden", "true");
     original.draggable = false;
+    if (project.preview) Object.assign(original.style, project.preview);
     const ascii = document.createElement("img");
     ascii.className = "project-choice__ascii";
     ascii.src = asciiUrl(project.small);
