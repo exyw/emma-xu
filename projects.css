@@ -16,16 +16,17 @@
   min-height: 100svh;
   flex-direction: column;
   align-items: center;
-  padding: 40px 24px 88px;
+  padding: 40px 24px;
 }
 
 .projects-stage {
   position: relative;
   isolation: isolate;
   width: min(640px, calc(100vw - 150px));
-  height: min(760px, calc(100svh - 80px));
-  min-height: 450px;
+  /* Compensate for the cropped head; projects.js keeps the visible width matched. */
+  height: calc(clamp(220px, calc((100svh - 80px) * 276 / 900), 276px) * 850 / 276 * 1.016);
   flex: none;
+  margin-top: 26px;
 }
 
 .projects-stage__motion,
@@ -88,7 +89,7 @@
   inset: 0;
   width: 100%;
   height: 100%;
-  object-fit: contain;
+  object-fit: fill;
 }
 
 .project-choice__original {
@@ -166,8 +167,8 @@
   .projects-experience { min-height: 0; padding: 38px 20px 68px; }
   .projects-stage {
     width: min(100%, 420px);
-    height: min(700px, max(580px, calc(100svh - 150px)));
-    min-height: 0;
+    height: calc(min(276px, calc(100vw - 88px)) * 850 / 276 * 1.016);
+    margin-top: 8px;
   }
   .projects-heading {
     top: clamp(60px, calc(50svh - 280px), 146px);

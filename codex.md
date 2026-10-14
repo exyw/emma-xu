@@ -24,6 +24,7 @@ This is a living guide for building Emma Xu's site. Read it before changing a pa
 8. For animated interactive artwork, keep its layout and interaction region stationary and animate a child layer. Keep hover, focus, and touch preview state independent of the motion clock so animation cannot reset an active preview.
 9. When outlined SVG artwork transforms, keep the supplied SVG as the settled view. Use its existing cutouts instead of adding rectangular masks around project slots. Keep overview slots in `projects-config.js` and regenerate the temporary sample field after artwork or overview slot changes. Its point cloud and echoes should follow one continuous sway clock. Keep the readable text and navigation outside that moving layer.
 10. Configure each Projects original-image preview in `projects-config.js` relative to its ASCII slot. For offset previews, keep the visible original smaller than and inside the ASCII slot, using an inset edge or corner. WIT keeps its centered placement. Preview placement is specific to Projects; do not apply it to the Who I Am page.
+11. Keep the Projects overview silhouette matched to the Who I Am portrait's visible size and vertical position. Its 850-unit crop needs a 1.016 height correction and a 0.886 source width factor because the head was removed from the supplied SVG. The Projects stage has a 26px desktop and 8px mobile top offset to align visible silhouettes. Scale and move the entire source layer, including its configured cutouts and previews.
 
 ## Before finishing a page change
 

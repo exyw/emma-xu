@@ -13,6 +13,8 @@
   const svgNS = "http://www.w3.org/2000/svg";
   const { crop, projects } = window.projectConfig;
   const assets = "assets/projects/";
+  // Match the visible portrait width after the cropped-height correction.
+  const sourceWidthScale = 0.886;
   const motion = {
     swayCycle: 6, desktopAmplitude: 12, compactAmplitude: 8,
     nearDelay: 0.65, farDelay: 1.15, nearOpacity: 0.43, farOpacity: 0.34,
@@ -43,7 +45,7 @@
   function makeSourceArt() {
     const art = svg("svg", {
       class: "projects-figure__art", viewBox: `${crop.x} ${crop.y} ${crop.width} ${crop.height}`,
-      "aria-hidden": "true", focusable: "false",
+      preserveAspectRatio: "none", "aria-hidden": "true", focusable: "false",
     });
     const defs = svg("defs");
     const silhouetteId = "projects-silhouette-mask";
@@ -229,7 +231,7 @@
   function rects() {
     const width = stage.clientWidth;
     const height = stage.clientHeight;
-    const figureWidth = height * crop.width / crop.height;
+    const figureWidth = height * crop.width / crop.height * sourceWidthScale;
     const sourceRect = { x: (width - figureWidth) / 2, y: 0, width: figureWidth, height };
     let targetRect = null;
     if (active) {
@@ -339,13 +341,6 @@
     return canvas;
   }
 
-  function contain(x, y, width, height, image) {
-    const scale = Math.min(width / image.naturalWidth, height / image.naturalHeight);
-    const w = image.naturalWidth * scale;
-    const h = image.naturalHeight * scale;
-    return { x: x + (width - w) / 2, y: y + (height - h) / 2, width: w, height: h };
-  }
-
   function tint(canvas, colour) {
     const tinted = canvasOf(canvas.width, canvas.height);
     const context = tinted.getContext("2d");
@@ -380,8 +375,7 @@
       const y = sourceRect.y + (slot.y - crop.y) / crop.height * sourceRect.height;
       const width = slot.width / crop.width * sourceRect.width;
       const height = slot.height / crop.height * sourceRect.height;
-      const fitted = contain(x, y, width, height, art[index]);
-      sourceContext.drawImage(art[index], fitted.x, fitted.y, fitted.width, fitted.height);
+      sourceContext.drawImage(art[index], x, y, width, height);
     });
     const targetCanvas = canvasOf(width, height);
     targetCanvas.getContext("2d").drawImage(
