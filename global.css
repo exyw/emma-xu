@@ -122,7 +122,7 @@ body {
   transition-delay: 0s;
 }
 
-.site-nav a.is-typing::after {
+.typewriter-link.is-typing::after {
   content: "";
   display: inline-block;
   width: 0.6ch;

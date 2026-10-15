@@ -280,10 +280,24 @@
     copy.replaceChildren();
     for (const paragraph of project.paragraphs || []) {
       const element = document.createElement("p");
-      element.textContent = paragraph;
+      if (typeof paragraph === "string") {
+        element.textContent = paragraph;
+      } else {
+        for (const part of paragraph) {
+          if (typeof part === "string") {
+            element.append(document.createTextNode(part));
+          } else {
+            const link = document.createElement("a");
+            link.href = part.href;
+            link.textContent = part.text;
+            element.append(link);
+          }
+        }
+      }
       copy.append(element);
     }
     copy.hidden = !copy.childElementCount;
+    copy.querySelectorAll("a").forEach(window.attachTypewriter);
   }
 
   function settleDetail(focus = false) {

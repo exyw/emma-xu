@@ -1,8 +1,8 @@
 (() => {
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 
-  // Each link gets its own typing state and timers
-  document.querySelectorAll(".site-nav a").forEach((link) => {
+  // Each link gets its own typing state and timers.
+  function attachTypewriter(link, { retryWidthOnResize = false } = {}) {
     const label = link.textContent.trim();
     const text = document.createElement("span");
     let widthLocked = false;
@@ -27,10 +27,11 @@
     }
 
     lockWidth();
-    window.addEventListener("resize", lockWidth);
+    if (retryWidthOnResize) window.addEventListener("resize", lockWidth);
     if (!link.hasAttribute("aria-label")) link.setAttribute("aria-label", label);
     link.textContent = "";
-    text.className = "nav-link-text";
+    link.classList.add("typewriter-link");
+    text.className = "typewriter-link__text";
     text.setAttribute("aria-hidden", "true");
     text.textContent = label;
     link.append(text);
@@ -93,5 +94,10 @@
     link.addEventListener("mouseleave", resetLabel);
     link.addEventListener("focus", typeLabel);
     link.addEventListener("blur", resetLabel);
+  }
+
+  window.attachTypewriter = attachTypewriter;
+  document.querySelectorAll(".site-nav a").forEach((link) => {
+    attachTypewriter(link, { retryWidthOnResize: true });
   });
 })();

@@ -27,6 +27,7 @@
   height: calc(clamp(220px, calc((100svh - 80px) * 276 / 900), 276px) * 850 / 276 * 1.016);
   flex: none;
   margin-top: 26px;
+  pointer-events: none;
 }
 
 .projects-stage__motion,
@@ -67,6 +68,7 @@
   border-radius: 0;
   background: transparent;
   cursor: pointer;
+  pointer-events: auto;
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -160,7 +162,15 @@
 .projects-experience.is-detail .projects-copy { margin-top: -136px; }
 
 .projects-copy p { margin: 0 0 1em; }
-.projects-copy a { color: inherit; text-underline-offset: 3px; }
+.projects-copy a {
+  color: inherit;
+  display: inline-block;
+  font-weight: 600;
+  white-space: nowrap;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  vertical-align: baseline;
+}
 .projects-copy a:focus-visible { outline: 2px solid currentColor; outline-offset: 4px; }
 
 @media (max-width: 640px) {
