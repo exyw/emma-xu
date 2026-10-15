@@ -10,6 +10,7 @@
   const copy = document.querySelector(".projects-copy");
   const back = document.querySelector(".projects-back");
   const nav = document.querySelector(".site-nav--portrait");
+  const projectsLink = nav.querySelector('.page-menu a[aria-current="page"]');
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
   const mobileNav = window.matchMedia("(max-width: 640px)");
   const compactMotion = window.matchMedia("(max-width: 640px), (max-height: 740px)");
@@ -706,13 +707,21 @@
     }
   }
 
-  back.addEventListener("click", () => {
+  function returnToProjects() {
     if (history.state?.projectsPage) {
       history.back();
     } else {
       history.replaceState(null, "", location.pathname + location.search);
       closeProject();
     }
+  }
+
+  back.addEventListener("click", returnToProjects);
+  projectsLink.addEventListener("click", (event) => {
+    if (state === "overview" || event.button !== 0 || event.metaKey ||
+        event.ctrlKey || event.shiftKey || event.altKey) return;
+    event.preventDefault();
+    if (state !== "closing") returnToProjects();
   });
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape" && state !== "overview") back.click();
