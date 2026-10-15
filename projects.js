@@ -4,6 +4,7 @@
 
   const experience = document.querySelector(".projects-experience");
   const heading = document.querySelector(".projects-heading");
+  const headingInfo = heading.querySelector("div");
   const title = document.querySelector(".projects-title");
   const meta = document.querySelector(".projects-meta");
   const metaText = document.querySelector(".projects-meta__text");
@@ -28,6 +29,7 @@
     burstAttackFraction: 0.2, desktopSplit: 24, compactSplit: 12,
     nearSplitFraction: 0.6, initialTime: 3.1,
     charcoal: [36, 34, 31], grey: [83, 77, 70],
+    ivory: [248, 240, 227], lightGrey: [167, 159, 147],
     amber: [188, 121, 40], coral: [186, 77, 62],
   };
 
@@ -126,9 +128,9 @@
       art.append(group);
       return group;
     };
-    const far = makeLayer(rgb(motion.grey), motion.farOpacity);
-    const near = makeLayer(rgb(motion.grey), motion.nearOpacity);
-    makeLayer(rgb(motion.charcoal), 1);
+    const far = makeLayer(rgb(motion.lightGrey), motion.farOpacity);
+    const near = makeLayer(rgb(motion.lightGrey), motion.nearOpacity);
+    makeLayer(rgb(motion.ivory), 1);
     wrapper.append(art);
     return { wrapper, near, far };
   }
@@ -166,8 +168,104 @@
   let buffers = null;
   let navRelease = 0;
   let navFrameId = null;
+  let overviewScrollY = 0;
+  let hasOverviewScroll = false;
+  let pendingHeadingFocus = null;
+  let renderedProjectId = null;
   const imageCache = new Map();
   const transitionDuration = 1.2;
+  const originalScrollRestoration = history.scrollRestoration;
+  const themeControls = [...nav.querySelectorAll("a"), back];
+  const lightBackground = [
+    [0, [237, 228, 211]], [0.5, [210, 197, 176]], [1, [182, 165, 141]],
+  ];
+  const darkBackground = [
+    [0, [36, 34, 31]], [0.6, [34, 32, 29]], [1, [28, 27, 25]],
+  ];
+
+  function gradientColour(x, y, width, height, stops) {
+    // CSS's default farthest-corner ellipse reaches each corner at radius 1.
+    const radius = Math.min(1, Math.hypot(
+      (x - width / 2) * Math.SQRT2 / width,
+      (y - height / 2) * Math.SQRT2 / height,
+    ));
+    for (let index = 1; index < stops.length; index += 1) {
+      const [end, endColour] = stops[index];
+      if (radius > end) continue;
+      const [start, startColour] = stops[index - 1];
+      return mix(startColour, endColour, (radius - start) / (end - start));
+    }
+    return stops[stops.length - 1][1];
+  }
+
+  function luminance(colour) {
+    const [red, green, blue] = colour.map((channel) => {
+      const value = channel / 255;
+      return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+    });
+    return red * 0.2126 + green * 0.7152 + blue * 0.0722;
+  }
+
+  function updateControlInk(fade) {
+    if (state === "overview" || state === "detail") {
+      themeControls.forEach((control) => control.style.removeProperty("--project-transition-ink"));
+      return;
+    }
+    if (fade === 0 || fade === 1) {
+      const ink = fade === 0 ? "#000" : "#fff";
+      themeControls.forEach((control) => control.style.setProperty("--project-transition-ink", ink));
+      return;
+    }
+    const bodyRect = document.body.getBoundingClientRect();
+    for (const control of themeControls) {
+      const rect = control.getBoundingClientRect();
+      const x = rect.left + rect.width / 2;
+      const y = rect.top + rect.height / 2;
+      const light = gradientColour(x - bodyRect.left, y - bodyRect.top,
+        bodyRect.width, bodyRect.height, lightBackground);
+      const dark = gradientColour(x, y, window.innerWidth, window.innerHeight, darkBackground);
+      // Black and white both exceed 4.5:1 near this luminance, so the flip
+      // remains readable as the gradient moves beneath each control.
+      const ink = luminance(mix(light, dark, fade)) >= 0.179 ? "#000" : "#fff";
+      if (control.style.getPropertyValue("--project-transition-ink") !== ink) {
+        control.style.setProperty("--project-transition-ink", ink);
+      }
+    }
+  }
+
+  function updateTheme() {
+    // Finish darkening before the title appears, while sharing the morph's progress.
+    const fade = ease(clamp(progress / 0.6, 0, 1));
+    document.body.style.setProperty("--detail-fade", String(fade));
+    document.body.classList.toggle("is-inverted", progress > 0.15);
+    updateControlInk(fade);
+  }
+
+  function revealDetailContent() {
+    const titleVisible = state === "detail" ||
+      ((state === "opening" || state === "closing") && progress >= 0.55);
+    const copyVisible = state === "detail" ||
+      ((state === "opening" || state === "closing") && progress >= 0.65);
+    heading.classList.toggle("is-title-visible", titleVisible);
+    headingInfo.setAttribute("aria-hidden", String(!titleVisible));
+    copy.classList.toggle("is-content-visible", copyVisible);
+    copy.inert = !copyVisible;
+    copy.setAttribute("aria-hidden", String(!copyVisible));
+    if (titleVisible && pendingHeadingFocus &&
+        pendingHeadingFocus.version === requestVersion &&
+        pendingHeadingFocus.projectId === active?.id &&
+        (state === "opening" || state === "detail")) {
+      pendingHeadingFocus = null;
+      title.focus({ preventScroll: true });
+    }
+  }
+
+  function updateTransitionView() {
+    experience.classList.toggle("is-transitioning", state === "opening" || state === "closing");
+    revealDetailContent();
+    updateNavRelease();
+    updateTheme();
+  }
 
   function resetNavRelease() {
     navRelease = 0;
@@ -175,7 +273,8 @@
   }
 
   function updateNavRelease() {
-    if (state !== "detail" || copy.hidden || mobileNav.matches) {
+    if (!experience.classList.contains("is-detail") || copy.hidden ||
+        !copy.classList.contains("is-content-visible") || mobileNav.matches) {
       resetNavRelease();
       return;
     }
@@ -283,8 +382,11 @@
       );
       const targetWidth = art.width * scale;
       const targetHeight = art.height * scale;
+      const artGap = mobileNav.matches ? 24 : 28;
+      const headingTop = parseFloat(getComputedStyle(experience).paddingTop) || 0;
+      const targetY = Math.max(0, headingTop + heading.offsetHeight + artGap - stage.offsetTop);
       targetRect = {
-        x: (width - targetWidth) / 2, y: (height - targetHeight) / 2,
+        x: (width - targetWidth) / 2, y: targetY,
         width: targetWidth, height: targetHeight,
       };
     }
@@ -308,7 +410,7 @@
   }
 
   function positionDetailContent() {
-    if (state !== "detail" || !geometry.targetRect) return;
+    if (!experience.classList.contains("is-detail") || !geometry.targetRect) return;
     const { y, height } = geometry.targetRect;
     const artGap = mobileNav.matches ? 24 : 28;
     experience.style.setProperty("--project-heading-top",
@@ -326,6 +428,7 @@
   }
 
   function renderCopy(project) {
+    renderedProjectId = project.id;
     title.textContent = project.title;
     metaText.textContent = (project.meta || "").replace(/ · /g, "\u00a0·\u00a0");
     meta.hidden = !project.meta;
@@ -354,28 +457,32 @@
 
   function settleDetail(focus = false) {
     if (!active) return;
+    history.scrollRestoration = "manual";
     state = "detail";
     progress = 1;
     source.hidden = true;
+    source.inert = true;
     source.style.pointerEvents = "none";
     targetHost.hidden = false;
     targetHost.style.opacity = "1";
     morphCanvas.hidden = true;
     heading.hidden = false;
-    renderCopy(active);
+    if (renderedProjectId !== active.id) renderCopy(active);
     stage.setAttribute("aria-label", `${active.title} ASCII artwork`);
     stage.removeAttribute("aria-busy");
     experience.classList.add("is-detail");
     positionDetailContent();
-    if (focus) back.focus({ preventScroll: true });
-    updateNavRelease();
+    if (!focus) pendingHeadingFocus = null;
+    updateTransitionView();
     drawMotion();
   }
 
   function settleOverview(focusId = null) {
+    pendingHeadingFocus = null;
     state = "overview";
     progress = 0;
     source.hidden = false;
+    source.inert = false;
     source.style.opacity = "1";
     source.style.pointerEvents = "";
     targetHost.hidden = true;
@@ -393,7 +500,10 @@
     hoveredId = null;
     focusedId = null;
     showPreview();
+    updateTransitionView();
     if (focusId) buttons.get(focusId)?.focus({ preventScroll: true });
+    if (focusId) window.scrollTo(0, hasOverviewScroll ? overviewScrollY : 0);
+    history.scrollRestoration = originalScrollRestoration;
     drawMotion();
   }
 
@@ -458,12 +568,16 @@
       source: {
         charcoal: tint(sourceCanvas, rgb(motion.charcoal)),
         grey: tint(sourceCanvas, rgb(motion.grey)),
+        ivory: tint(sourceCanvas, rgb(motion.ivory)),
+        lightGrey: tint(sourceCanvas, rgb(motion.lightGrey)),
         amber: tint(sourceCanvas, rgb(motion.amber)),
         coral: tint(sourceCanvas, rgb(motion.coral)),
       },
       target: {
         charcoal: tint(targetCanvas, rgb(motion.charcoal)),
         grey: tint(targetCanvas, rgb(motion.grey)),
+        ivory: tint(targetCanvas, rgb(motion.ivory)),
+        lightGrey: tint(targetCanvas, rgb(motion.lightGrey)),
         amber: tint(targetCanvas, rgb(motion.amber)),
         coral: tint(targetCanvas, rgb(motion.coral)),
       },
@@ -482,6 +596,7 @@
     const count = Math.max(start.length, end.length);
     const fromArt = amount < 0.5;
     const selected = fromArt ? buffers.source : buffers.target;
+    const lightAmount = ease(clamp(progress / 0.6, 0, 1));
     const warm = Math.pow(Math.max(0, 1 - Math.abs(progress - 0.18) / 0.34), 1.5);
     const size = 6;
     const passes = [
@@ -491,6 +606,7 @@
     ];
     for (const pass of passes) {
       const texture = selected[pass.colour];
+      const lightTexture = selected[pass.opacity === 1 ? "ivory" : "lightGrey"];
       context.globalAlpha = pass.opacity;
       for (let index = 0; index < count; index += 1) {
         const a = start[Math.floor(index * start.length / count)];
@@ -505,6 +621,12 @@
         const sampleY = fromArt ? sy : ty;
         context.drawImage(texture, sampleX - size / 2, sampleY - size / 2,
           size, size, x - size / 2, y - size / 2, size, size);
+        if (lightAmount > 0) {
+          context.globalAlpha = pass.opacity * lightAmount;
+          context.drawImage(lightTexture, sampleX - size / 2, sampleY - size / 2,
+            size, size, x - size / 2, y - size / 2, size, size);
+          context.globalAlpha = pass.opacity;
+        }
       }
     }
     if (warm > 0.02) {
@@ -595,6 +717,7 @@
     lastTimestamp = timestamp;
     if (state === "opening" && progress >= 1) settleDetail(true);
     if (state === "closing" && progress <= 0) settleOverview(active?.id);
+    if (state === "opening" || state === "closing") updateTransitionView();
     drawMotion();
     frameId = window.requestAnimationFrame(tick);
   }
@@ -622,23 +745,36 @@
     const version = ++requestVersion;
     const previousState = state;
     const previousProgress = progress;
-    if (active?.id !== project.id) {
-      active = project;
-      showTarget(project);
+    const previousProjectId = active?.id;
+    pendingHeadingFocus = moveFocus ? { version, projectId: project.id } : null;
+    history.scrollRestoration = "manual";
+    if (previousState === "overview") {
+      overviewScrollY = window.scrollY;
+      hasOverviewScroll = true;
+      window.scrollTo(0, 0);
     }
+    const projectChanged = active?.id !== project.id;
+    active = project;
+    heading.hidden = false;
+    renderCopy(project);
+    experience.classList.add("is-detail");
+    if (projectChanged) showTarget(project);
     hoveredId = null;
     focusedId = null;
     showPreview();
-    heading.hidden = true;
-    copy.hidden = true;
-    resetNavRelease();
+    positionDetailContent();
     stage.setAttribute("aria-busy", "true");
-    if (reducedMotion.matches) {
+    // A changed URL can request another detail while one is already visible.
+    if (reducedMotion.matches || (previousState !== "overview" &&
+        previousState !== "closing" && previousProjectId !== project.id)) {
       settleDetail(moveFocus);
       return;
     }
     state = "loading";
+    progress = previousState === "closing" ? previousProgress : 0;
+    updateTransitionView();
     source.style.pointerEvents = "none";
+    source.inert = true;
     try {
       await prepareBuffers(project);
     } catch (error) {
@@ -653,6 +789,7 @@
     source.hidden = false;
     targetHost.hidden = false;
     source.style.pointerEvents = "none";
+    updateTransitionView();
     drawMotion();
     updateRunState();
   }
@@ -660,14 +797,14 @@
   async function closeProject() {
     if (state === "overview" || !active) return;
     const project = active;
+    const previousState = state;
     const version = ++requestVersion;
+    pendingHeadingFocus = null;
+    if (document.activeElement === title) back.focus({ preventScroll: true });
     if (state === "loading") {
       settleOverview(project.id);
       return;
     }
-    heading.hidden = true;
-    copy.hidden = true;
-    resetNavRelease();
     stage.setAttribute("aria-busy", "true");
     if (reducedMotion.matches) {
       settleOverview(project.id);
@@ -685,10 +822,15 @@
       return;
     }
     state = "closing";
-    if (progress === 0) progress = 1;
+    if (progress === 0 && previousState === "detail") progress = 1;
+    if (progress === 0) {
+      settleOverview(project.id);
+      return;
+    }
     morphCanvas.hidden = false;
     source.hidden = false;
     targetHost.hidden = false;
+    updateTransitionView();
     drawMotion();
     updateRunState();
   }
@@ -737,8 +879,16 @@
   });
   window.addEventListener("scroll", queueNavRelease, { passive: true });
   document.addEventListener("visibilitychange", updateRunState);
-  window.addEventListener("pagehide", () => { pageActive = false; updateRunState(); });
-  window.addEventListener("pageshow", () => { pageActive = true; updateRunState(); });
+  window.addEventListener("pagehide", () => {
+    pageActive = false;
+    history.scrollRestoration = originalScrollRestoration;
+    updateRunState();
+  });
+  window.addEventListener("pageshow", () => {
+    pageActive = true;
+    history.scrollRestoration = state === "overview" ? originalScrollRestoration : "manual";
+    updateRunState();
+  });
   reducedMotion.addEventListener("change", () => {
     updateRunState();
     updateNavRelease();
@@ -756,10 +906,14 @@
   const initialProject = currentHashProject();
   if (initialProject) {
     active = initialProject;
+    heading.hidden = false;
+    renderCopy(initialProject);
+    experience.classList.add("is-detail");
     showTarget(initialProject);
     settleDetail(false);
   } else {
     settleOverview();
   }
+  document.documentElement.classList.remove("projects-initial-detail");
   updateRunState();
 })();

@@ -4,6 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Projects | Emma Xu</title>
+    <script src="projects-config.js"></script>
+    <script>
+      try {
+        const projectId = decodeURIComponent(location.hash.slice(1));
+        if (window.projectConfig.projects.some((project) => project.id === projectId)) {
+          document.documentElement.classList.add("projects-initial-detail");
+        }
+      } catch (_) { /* An invalid hash opens the overview. */ }
+    </script>
     <link rel="stylesheet" href="global.css">
     <link rel="stylesheet" href="projects.css">
   </head>
@@ -32,7 +41,6 @@
     </main>
 
     <script src="navigation.js"></script>
-    <script src="projects-config.js"></script>
     <script src="projects-morph-data.js"></script>
     <script src="projects.js"></script>
   </body>
