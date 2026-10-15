@@ -113,9 +113,7 @@ body {
 }
 
 .page-menu:hover > a:not(.selected),
-.page-menu:focus-within > a:not(.selected),
-.site-nav:has(.contact-link.selected):hover .page-menu > a,
-.site-nav:has(.contact-link.selected):focus-within .page-menu > a {
+.page-menu:focus-within > a:not(.selected) {
   visibility: visible;
   opacity: 1;
   pointer-events: auto;
