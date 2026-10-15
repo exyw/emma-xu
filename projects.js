@@ -8,13 +8,17 @@
   const meta = document.querySelector(".projects-meta");
   const copy = document.querySelector(".projects-copy");
   const back = document.querySelector(".projects-back");
+  const nav = document.querySelector(".site-nav--portrait");
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+  const mobileNav = window.matchMedia("(max-width: 640px)");
   const compactMotion = window.matchMedia("(max-width: 640px), (max-height: 740px)");
   const svgNS = "http://www.w3.org/2000/svg";
   const { crop, projects } = window.projectConfig;
   const assets = "assets/projects/";
   // Match the visible portrait width after the cropped-height correction.
   const sourceWidthScale = 0.886;
+  const navCopyGap = 24;
+  const navEaseDistance = 96;
   const motion = {
     swayCycle: 6, desktopAmplitude: 12, compactAmplitude: 8,
     nearDelay: 0.65, farDelay: 1.15, nearOpacity: 0.43, farOpacity: 0.34,
@@ -158,8 +162,43 @@
   let requestVersion = 0;
   let geometry = null;
   let buffers = null;
+  let navRelease = 0;
+  let navFrameId = null;
   const imageCache = new Map();
   const transitionDuration = 1.2;
+
+  function resetNavRelease() {
+    navRelease = 0;
+    nav.style.removeProperty("--portrait-nav-release");
+  }
+
+  function updateNavRelease() {
+    if (state !== "detail" || copy.hidden || mobileNav.matches) {
+      resetNavRelease();
+      return;
+    }
+    const copyTop = copy.getBoundingClientRect().top + window.scrollY;
+    // Include the full menu box so its links stay clear when they expand.
+    const navBottomAtRest = nav.getBoundingClientRect().bottom + navRelease;
+    const overrun = window.scrollY + navBottomAtRest + navCopyGap - copyTop;
+    let nextRelease = Math.max(0, overrun);
+    if (!reducedMotion.matches && Math.abs(overrun) < navEaseDistance / 2) {
+      // Ease from stationary to scroll speed without shrinking the final gap.
+      const ramp = overrun + navEaseDistance / 2;
+      nextRelease = ramp * ramp / (2 * navEaseDistance);
+    }
+    if (Math.abs(nextRelease - navRelease) < 0.5) return;
+    navRelease = nextRelease;
+    nav.style.setProperty("--portrait-nav-release", `${navRelease}px`);
+  }
+
+  function queueNavRelease() {
+    if (navFrameId !== null) return;
+    navFrameId = window.requestAnimationFrame(() => {
+      navFrameId = null;
+      updateNavRelease();
+    });
+  }
 
   projects.forEach((project) => {
     const button = document.createElement("button");
@@ -315,6 +354,7 @@
     stage.removeAttribute("aria-busy");
     experience.classList.add("is-detail");
     if (focus) back.focus({ preventScroll: true });
+    updateNavRelease();
     drawMotion();
   }
 
@@ -331,6 +371,7 @@
     stage.setAttribute("aria-label", "Select a project from the ASCII portrait");
     stage.removeAttribute("aria-busy");
     experience.classList.remove("is-detail");
+    resetNavRelease();
     active = null;
     hoveredId = null;
     focusedId = null;
@@ -573,6 +614,7 @@
     showPreview();
     heading.hidden = true;
     copy.hidden = true;
+    resetNavRelease();
     stage.setAttribute("aria-busy", "true");
     if (reducedMotion.matches) {
       settleDetail(moveFocus);
@@ -608,6 +650,7 @@
     }
     heading.hidden = true;
     copy.hidden = true;
+    resetNavRelease();
     stage.setAttribute("aria-busy", "true");
     if (reducedMotion.matches) {
       settleOverview(project.id);
@@ -662,13 +705,18 @@
   window.addEventListener("hashchange", syncFromLocation);
   window.addEventListener("resize", () => {
     updateGeometry();
+    updateNavRelease();
     if ((state === "opening" || state === "closing") && active) prepareBuffers(active).then(() => drawMotion());
     else drawMotion();
   });
+  window.addEventListener("scroll", queueNavRelease, { passive: true });
   document.addEventListener("visibilitychange", updateRunState);
   window.addEventListener("pagehide", () => { pageActive = false; updateRunState(); });
   window.addEventListener("pageshow", () => { pageActive = true; updateRunState(); });
-  reducedMotion.addEventListener("change", updateRunState);
+  reducedMotion.addEventListener("change", () => {
+    updateRunState();
+    updateNavRelease();
+  });
   compactMotion.addEventListener("change", drawMotion);
   if ("IntersectionObserver" in window) {
     const observer = new IntersectionObserver((entries) => {

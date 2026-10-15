@@ -36,6 +36,7 @@ body {
   width: min(1010px, calc(100vw - 48px));
   justify-content: space-between;
   pointer-events: none;
+  transform: translate(-50%, calc(-50% - var(--portrait-nav-release, 0px)));
 }
 
 .site-nav--portrait .contact-link { pointer-events: auto; }
