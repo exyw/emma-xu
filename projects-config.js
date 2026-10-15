@@ -43,12 +43,17 @@ window.projectConfig = {
       "meta": "Java · 2025"
     },
     {
-      "id": "cnn", "title": "Brain Tumor Detection", "small": "CNN small.svg",
+      "id": "cnn", "title": "Brain Tumour Classifier", "small": "CNN small.svg",
       "large": "CNN large.svg", "original": "CNN asset.jpg",
       "slot": { "x": 483, "y": 497, "width": 173, "height": 53 },
       "preview": { "width": "78%", "height": "auto", "top": "auto", "left": "5%", "bottom": "5%", "transform": "none" },
       "art": { "width": 1262, "height": 362, "maxWidth": 610, "maxHeight": 175 },
-      "meta": "CNN, Python, PyTorch, OpenCV · 2024"
+      "meta": "CNN, Python, PyTorch, OpenCV · 2024",
+      "paragraphs": [
+        "I undertook this as a side project to learn about machine learning fundamentals and how to train a neural network from scratch. I used a kaggle dataset of brain MRI scans to train the CNN to classify whether the patient had pituitary, meningioma, glioma or no tumour.",
+        "I spent a lot of the time adjusting the preprocessing pipeline of the images; scaling, augmenting and distorting the images. With tuning the hyperparameters of the CNN, i improved its its accuracy to 96%.", 
+        "Looking back on this project, I think it is a testimony to how much frontier AI models have improved in the past few years, and how this CNN that I spent months training and tuning could now easily be outperformed by a oneshot prompt to a LLM. Having said that, I still believe there is a fundamental place in learning the basics and foundations of system design, machine learning principles, and etc. to be able to be critical of the outputs produced by agentic coding systems."
+      ]
     },
     {
       "id": "connect3", "title": "Connect3", "small": "Connect3 small.svg",
@@ -58,7 +63,10 @@ window.projectConfig = {
       "art": { "width": 483, "height": 398, "maxWidth": 440, "maxHeight": 363 },
       "meta": "Next.js, TypeScript, Supabase, Agentic Systems · 2025-2026",
       "paragraphs": [
-        "Connect3 is a student project - AI based platform that connects students to other students, clubs and events on campus. I joined as an AI developer and worked across various LLM based features, such as the RAG workflow to improve university related responses via better chunking, OpenAI embeddings and metadata filtering.",
+        [
+          { "text": "Connect3", "href": "https://connect3.app/" },
+          " is a student project - AI based platform that connects students to other students, clubs and events on campus. I joined as an AI developer and worked across various LLM based features, such as the RAG workflow to improve university related responses via better chunking, OpenAI embeddings and metadata filtering."
+        ],
         "Like most student projects, I learnt a lot of the skills required as I had to ship out features quickly and efficiently. I also learnt a lot about how good communication is a vital factor to a succesful project.",
         "The most surprising part of this project was after our first official launch, and I realised how much of an 'AI bubble' I personlly am in, and so this project also sparked my interest in creating AI platforms that cater to the general public, and not just those who are already familiar with AI."
       ]
