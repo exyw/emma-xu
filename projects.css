@@ -118,40 +118,56 @@
 .projects-heading {
   position: absolute;
   z-index: 3;
-  top: clamp(40px, calc(50svh - 320px), 170px);
+  top: var(--project-heading-top, 0px);
   left: 50%;
   display: flex;
   box-sizing: border-box;
   width: min(540px, calc(100% - 48px));
+  flex-direction: column;
   align-items: flex-start;
-  gap: 14px;
   transform: translateX(-50%);
 }
 
+.projects-heading > div { width: 100%; }
+
 .projects-back {
-  flex: none;
-  margin: -2px 0 0;
-  padding: 0 3px;
+  margin: 0 0 12px;
+  padding: 0;
   border: 0;
   background: transparent;
   color: inherit;
   cursor: pointer;
-  font: 27px/1 courier, monospace;
+  font: 700 13px/1.4 courier, monospace;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
 }
 
 .projects-title {
   margin: 0;
-  font-size: clamp(16px, 2vw, 20px);
-  line-height: 1.3;
+  font-size: clamp(20px, 2vw, 24px);
+  line-height: 1.2;
 }
 
 .projects-meta {
-  margin: 5px 0 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 8px 0 0;
   font-size: 13px;
   line-height: 1.4;
 }
 
+.projects-meta::after {
+  flex: 1;
+  min-width: 24px;
+  border-top: 1px solid currentColor;
+  content: "";
+  opacity: .4;
+}
+
 .projects-copy {
+  position: relative;
   box-sizing: border-box;
   width: min(540px, 100%);
   margin-top: 4px;
@@ -159,7 +175,18 @@
   line-height: 1.6;
 }
 
-.projects-experience.is-detail .projects-copy { margin-top: -136px; }
+.projects-experience.is-detail .projects-copy { margin-top: var(--project-copy-offset, -136px); }
+
+.projects-experience.is-detail .projects-copy::before {
+  position: absolute;
+  top: var(--project-divider-offset, -14px);
+  right: 0;
+  left: 0;
+  border-top: 1px solid currentColor;
+  content: "";
+  opacity: .4;
+  pointer-events: none;
+}
 
 .projects-copy p { margin: 0 0 1em; }
 .projects-copy a {
@@ -181,10 +208,9 @@
     margin-top: 8px;
   }
   .projects-heading {
-    top: clamp(60px, calc(50svh - 280px), 146px);
     width: min(420px, calc(100% - 40px));
   }
-  .projects-experience.is-detail .projects-copy { margin-top: -136px; }
+  .projects-title { font-size: 20px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

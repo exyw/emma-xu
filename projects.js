@@ -6,6 +6,7 @@
   const heading = document.querySelector(".projects-heading");
   const title = document.querySelector(".projects-title");
   const meta = document.querySelector(".projects-meta");
+  const metaText = document.querySelector(".projects-meta__text");
   const copy = document.querySelector(".projects-copy");
   const back = document.querySelector(".projects-back");
   const nav = document.querySelector(".site-nav--portrait");
@@ -305,6 +306,17 @@
     buffers = null;
   }
 
+  function positionDetailContent() {
+    if (state !== "detail" || !geometry.targetRect) return;
+    const { y, height } = geometry.targetRect;
+    const artGap = mobileNav.matches ? 24 : 28;
+    experience.style.setProperty("--project-heading-top",
+      `${stage.offsetTop + y - heading.offsetHeight - artGap}px`);
+    experience.style.setProperty("--project-copy-offset",
+      `${y + height + artGap - stage.clientHeight}px`);
+    experience.style.setProperty("--project-divider-offset", `${-artGap / 2}px`);
+  }
+
   function showTarget(project) {
     targetHost.replaceChildren();
     targetArt = makeTargetArt(project);
@@ -314,7 +326,7 @@
 
   function renderCopy(project) {
     title.textContent = project.title;
-    meta.textContent = project.meta || "";
+    metaText.textContent = (project.meta || "").replace(/ · /g, "\u00a0·\u00a0");
     meta.hidden = !project.meta;
     copy.replaceChildren();
     for (const paragraph of project.paragraphs || []) {
@@ -353,6 +365,7 @@
     stage.setAttribute("aria-label", `${active.title} ASCII artwork`);
     stage.removeAttribute("aria-busy");
     experience.classList.add("is-detail");
+    positionDetailContent();
     if (focus) back.focus({ preventScroll: true });
     updateNavRelease();
     drawMotion();
@@ -371,6 +384,9 @@
     stage.setAttribute("aria-label", "Select a project from the ASCII portrait");
     stage.removeAttribute("aria-busy");
     experience.classList.remove("is-detail");
+    experience.style.removeProperty("--project-heading-top");
+    experience.style.removeProperty("--project-copy-offset");
+    experience.style.removeProperty("--project-divider-offset");
     resetNavRelease();
     active = null;
     hoveredId = null;
@@ -705,6 +721,7 @@
   window.addEventListener("hashchange", syncFromLocation);
   window.addEventListener("resize", () => {
     updateGeometry();
+    positionDetailContent();
     updateNavRelease();
     if ((state === "opening" || state === "closing") && active) prepareBuffers(active).then(() => drawMotion());
     else drawMotion();
