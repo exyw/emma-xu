@@ -1,0 +1,95 @@
+@property --cursor-x {
+  syntax: "<length-percentage>";
+  inherits: false;
+  initial-value: 50%;
+}
+
+@property --cursor-y {
+  syntax: "<length-percentage>";
+  inherits: false;
+  initial-value: 50%;
+}
+
+.prelude {
+  --reveal-radius: 100px;
+  --half-nav-gap: clamp(12px, 1.5vw, 18px);
+  position: fixed;
+  inset: 0;
+  z-index: 2;
+  cursor: default;
+  transition: opacity 350ms ease;
+}
+
+.prelude.is-dismissed {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.prelude-title {
+  position: absolute;
+  top: 50%;
+  left: calc(50% - var(--half-nav-gap));
+  pointer-events: none;
+  font-size: 16px;
+  font-weight: bold;
+  transform: translate(-100%, -50%);
+  white-space: nowrap;
+}
+
+.prelude-mask {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  transition: none;
+  background: radial-gradient(
+    circle var(--reveal-radius) at var(--cursor-x) var(--cursor-y),
+    transparent 0%,
+    transparent 55%,
+    rgb(0 0 0 / 18%) 67%,
+    rgb(0 0 0 / 48%) 80%,
+    rgb(0 0 0 / 80%) 91%,
+    #000 100%
+  );
+  --cursor-x: 50%;
+  --cursor-y: 50%;
+}
+
+.home-main { min-height: 0; }
+.home-artwork { display: contents; }
+.spotlight-tools { display: none; }
+
+@media (max-width: 640px), (hover: none) and (pointer: coarse) {
+  html { height: 100%; overflow: hidden; }
+  .home-page { position: relative; height: 100svh; height: 100dvh; min-height: 0; overflow: hidden; }
+  .home-main { position: relative; height: 100%; min-height: 0; }
+  .home-artwork {
+    position: absolute; inset: 0; display: block; min-height: 0;
+    touch-action: pan-y pinch-zoom;
+    background: radial-gradient(circle at center, #ede4d3 0%, #b6a58d 100%);
+  }
+  .home-artwork:focus-visible { outline-color: #f8f0e3; outline-offset: -6px; }
+  .prelude { position: absolute; inset: 0; pointer-events: none; transition: opacity 350ms ease; }
+  .prelude.is-dismissed { opacity: 0; }
+  .prelude-title { display: none; }
+  .prelude-mask {
+    position: absolute; inset: 0;
+    --reveal-radius: clamp(64px, 20vw, 84px);
+    --cursor-x: 30%; --cursor-y: 40%;
+    background: radial-gradient(circle var(--reveal-radius) at var(--cursor-x) var(--cursor-y),
+      transparent 0%, transparent 55%, rgb(0 0 0 / 18%) 67%, rgb(0 0 0 / 48%) 80%, rgb(0 0 0 / 80%) 91%, #000 100%);
+  }
+  .home-page:not(.is-revealed) { background: #000; }
+  .spotlight-tools {
+    position: absolute; z-index: 3; bottom: max(76px, calc(env(safe-area-inset-bottom) + 64px));
+    left: max(24px, env(safe-area-inset-left)); right: max(24px, env(safe-area-inset-right));
+    display: flex; align-items: center; justify-content: center; flex-wrap: wrap;
+    gap: 8px 20px; color: #f8f0e3;
+  }
+  .spotlight-tools button {
+    min-height: 44px; min-width: 44px; padding: 4px 8px; border: 0;
+    color: inherit; background: transparent; font: 12px/1.4 courier, monospace;
+    cursor: pointer;
+  }
+  .is-revealed .spotlight-tools { color: #24221f; }
+}

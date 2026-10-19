@@ -11,9 +11,14 @@
   const copy = document.querySelector(".projects-copy");
   const back = document.querySelector(".projects-back");
   const nav = document.querySelector(".site-nav--portrait");
-  const projectsLink = nav.querySelector('.page-menu a[aria-current="page"]');
-  const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
-  const mobileNav = window.matchMedia("(max-width: 640px)");
+  const projectsLinks = nav.querySelectorAll('a[href="projects.html"][aria-current="page"]');
+  const overviewNavigation = document.querySelector('.overview-navigation');
+  const overviewTitle = document.querySelector('.projects-overview-title');
+  const pagination = document.querySelector('.project-pagination');
+  const previousButton = document.querySelector('.project-previous');
+  const nextButton = document.querySelector('.project-next');
+  const position = document.querySelector('.project-position');
+  const mobileNav = window.siteLayout;
   const compactMotion = window.matchMedia("(max-width: 640px), (max-height: 740px)");
   const svgNS = "http://www.w3.org/2000/svg";
   const { crop, projects } = window.projectConfig;
@@ -33,7 +38,7 @@
     amber: [188, 121, 40], coral: [186, 77, 62],
   };
 
-  // The labels are verified artwork names. Only CHIP has supplied public copy.
+  // All navigation uses the verified order and content in projects-config.js.
   const projectById = new Map(projects.map((project) => [project.id, project]));
   const points = window.projectMorphPoints;
   const svg = (tag, attributes = {}) => {
@@ -156,6 +161,9 @@
   let active = null;
   let state = "overview";
   let progress = 0;
+  let ghostId = null;
+  let ghost = null;
+  let returnFocusId = null;
   let hoveredId = null;
   let focusedId = null;
   let time = motion.initialTime;
@@ -175,7 +183,7 @@
   const imageCache = new Map();
   const transitionDuration = 1.2;
   const originalScrollRestoration = history.scrollRestoration;
-  const themeControls = [...nav.querySelectorAll("a"), back];
+  const themeControls = [...nav.querySelectorAll("a, button"), back];
   const lightBackground = [
     [0, [237, 228, 211]], [0.5, [210, 197, 176]], [1, [182, 165, 141]],
   ];
@@ -207,17 +215,22 @@
   }
 
   function updateControlInk(fade) {
+    // Mobile copy is available during the morph; flip each text region at its own contrast threshold.
+    const controls = mobileNav.matches ? [
+      ...themeControls, headingInfo, meta, copy, pagination,
+      ...copy.querySelectorAll('p, a'), ...pagination.querySelectorAll('button'),
+    ] : themeControls;
     if (state === "overview" || state === "detail") {
-      themeControls.forEach((control) => control.style.removeProperty("--project-transition-ink"));
+      controls.forEach((control) => control.style.removeProperty("--project-transition-ink"));
       return;
     }
     if (fade === 0 || fade === 1) {
       const ink = fade === 0 ? "#000" : "#fff";
-      themeControls.forEach((control) => control.style.setProperty("--project-transition-ink", ink));
+      controls.forEach((control) => control.style.setProperty("--project-transition-ink", ink));
       return;
     }
     const bodyRect = document.body.getBoundingClientRect();
-    for (const control of themeControls) {
+    for (const control of controls) {
       const rect = control.getBoundingClientRect();
       const x = rect.left + rect.width / 2;
       const y = rect.top + rect.height / 2;
@@ -234,7 +247,7 @@
   }
 
   function updateTheme() {
-    // Finish darkening before the title appears, while sharing the morph's progress.
+    // Desktop copy waits for the darker phase; mobile text tracks contrast throughout the morph.
     const fade = ease(clamp(progress / 0.6, 0, 1));
     document.body.style.setProperty("--detail-fade", String(fade));
     document.body.classList.toggle("is-inverted", progress > 0.15);
@@ -242,10 +255,11 @@
   }
 
   function revealDetailContent() {
-    const titleVisible = state === "detail" ||
-      ((state === "opening" || state === "closing") && progress >= 0.55);
-    const copyVisible = state === "detail" ||
-      ((state === "opening" || state === "closing") && progress >= 0.65);
+    const titleVisible = mobileNav.matches
+      ? Boolean(active) && state !== 'overview' && (state !== 'closing' || progress >= .55)
+      : state === 'detail' || ((state === 'opening' || state === 'closing') && progress >= .55);
+    const copyVisible = mobileNav.matches ? titleVisible : state === 'detail' ||
+      (state === 'opening' && progress >= .65);
     heading.classList.toggle("is-title-visible", titleVisible);
     headingInfo.setAttribute("aria-hidden", String(!titleVisible));
     copy.classList.toggle("is-content-visible", copyVisible);
@@ -261,7 +275,9 @@
   }
 
   function updateTransitionView() {
-    experience.classList.toggle("is-transitioning", state === "opening" || state === "closing");
+    experience.classList.toggle("is-transitioning", (mobileNav.matches && state === "loading") || state === "opening" || state === "closing");
+    experience.classList.toggle("is-copy-fading", !mobileNav.matches && state === "closing");
+    ghost?.sync();
     revealDetailContent();
     updateNavRelease();
     updateTheme();
@@ -283,7 +299,7 @@
     const navBottomAtRest = nav.getBoundingClientRect().bottom + navRelease;
     const overrun = window.scrollY + navBottomAtRest + navCopyGap - copyTop;
     let nextRelease = Math.max(0, overrun);
-    if (!reducedMotion.matches && Math.abs(overrun) < navEaseDistance / 2) {
+    if (!window.siteMotion.stopped && Math.abs(overrun) < navEaseDistance / 2) {
       // Ease from stationary to scroll speed without shrinking the final gap.
       const ramp = overrun + navEaseDistance / 2;
       nextRelease = ramp * ramp / (2 * navEaseDistance);
@@ -298,6 +314,7 @@
     navFrameId = window.requestAnimationFrame(() => {
       navFrameId = null;
       updateNavRelease();
+      saveReadingPosition();
     });
   }
 
@@ -306,6 +323,7 @@
     button.type = "button";
     button.className = "project-choice";
     button.dataset.project = project.id;
+    if (mobileNav.matches) button.title = project.title;
     button.setAttribute("aria-label", `Open ${project.title} project`);
     const slot = project.slot;
     button.style.left = `${((slot.x - crop.x) / crop.width) * 100}%`;
@@ -328,23 +346,24 @@
     button.append(original, ascii);
     button.addEventListener("focus", () => {
       focusedId = button.matches(":focus-visible") ? project.id : null;
+      ghost?.sync();
       showPreview();
     });
     button.addEventListener("blur", () => {
       if (focusedId === project.id) focusedId = null;
+      ghost?.quiet();
       showPreview();
     });
     button.addEventListener("click", () => {
       if (state !== "overview") return;
-      history.pushState({ projectsPage: true }, "", `#${project.id}`);
-      openProject(project, true);
+      navigateProject(project);
     });
     source.append(button);
     buttons.set(project.id, button);
   });
 
   function showPreview() {
-    const preview = state === "overview" ? (focusedId || hoveredId) : null;
+    const preview = state === "overview" ? (focusedId || hoveredId || ghostId) : null;
     buttons.forEach((button, id) => button.classList.toggle("is-preview", id === preview));
   }
 
@@ -359,13 +378,20 @@
     }
     if (next === hoveredId) return;
     hoveredId = next;
+    ghost?.quiet();
     showPreview();
   });
   document.addEventListener("pointerdown", (event) => {
     if (source.contains(event.target)) return;
     hoveredId = null;
     focusedId = null;
+    ghost?.quiet();
     showPreview();
+  });
+  ghost = window.createGhostPreview({
+    element: stage, ids: projects.map((project) => project.id),
+    show(id) { ghostId = id; showPreview(); },
+    blocked: () => state !== 'overview' || Boolean(hoveredId || focusedId),
   });
 
   function rects() {
@@ -394,6 +420,14 @@
   }
 
   function updateGeometry() {
+    // Let wrapped/enlarged headings grow the stage instead of clipping the morph.
+    if (active && mobileNav.matches) {
+      const art = active.art;
+      const artHeight = Math.min(art.maxHeight, art.height * Math.min(art.maxWidth, stage.clientWidth - 28) / art.width);
+      stage.style.setProperty('--project-stage-min-height', `${heading.offsetHeight + artHeight + 72}px`);
+    } else {
+      stage.style.removeProperty('--project-stage-min-height');
+    }
     geometry = rects();
     const { sourceRect, targetRect } = geometry;
     Object.assign(source.style, {
@@ -430,8 +464,9 @@
   function renderCopy(project) {
     renderedProjectId = project.id;
     title.textContent = project.title;
-    metaText.textContent = (project.meta || "").replace(/ · /g, "\u00a0·\u00a0");
+    metaText.textContent = mobileNav.matches ? project.meta || '' : (project.meta || '').replace(/ · /g, '\u00a0·\u00a0');
     meta.hidden = !project.meta;
+    window.detachTypewriters(copy);
     copy.replaceChildren();
     for (const paragraph of project.paragraphs || []) {
       const element = document.createElement("p");
@@ -451,7 +486,18 @@
       }
       copy.append(element);
     }
-    copy.hidden = !copy.childElementCount;
+    copy.hidden = !mobileNav.matches && !copy.childElementCount;
+    pagination.hidden = !mobileNav.matches;
+    overviewNavigation.hidden = true;
+    overviewTitle.hidden = true;
+    const index = projects.indexOf(project);
+    const previous = projects[mod(index - 1, projects.length)];
+    const next = projects[mod(index + 1, projects.length)];
+    previousButton.textContent = `← ${previous.title}`;
+    nextButton.textContent = `${next.title} →`;
+    previousButton.setAttribute('aria-label', `Previous project: ${previous.title}`);
+    nextButton.setAttribute('aria-label', `Next project: ${next.title}`);
+    position.textContent = `${index + 1} / ${projects.length}`;
     copy.querySelectorAll("a").forEach(window.attachTypewriter);
   }
 
@@ -489,6 +535,9 @@
     morphCanvas.hidden = true;
     heading.hidden = true;
     copy.hidden = true;
+    pagination.hidden = true;
+    overviewNavigation.hidden = !mobileNav.matches;
+    overviewTitle.hidden = false;
     stage.setAttribute("aria-label", "Select a project from the ASCII portrait");
     stage.removeAttribute("aria-busy");
     experience.classList.remove("is-detail");
@@ -499,11 +548,14 @@
     active = null;
     hoveredId = null;
     focusedId = null;
+    updateGeometry();
     showPreview();
     updateTransitionView();
-    if (focusId) buttons.get(focusId)?.focus({ preventScroll: true });
+    if (focusId) buttons.get(returnFocusId || focusId)?.focus({ preventScroll: true });
+    returnFocusId = null;
     if (focusId) window.scrollTo(0, hasOverviewScroll ? overviewScrollY : 0);
     history.scrollRestoration = originalScrollRestoration;
+    ghost?.quiet();
     drawMotion();
   }
 
@@ -674,7 +726,7 @@
   }
 
   function drawMotion() {
-    if (reducedMotion.matches) { drawStatic(); return; }
+    if (window.siteMotion.stopped) { drawStatic(); return; }
     if (!geometry) updateGeometry();
     const amplitude = compactMotion.matches ? motion.compactAmplitude : motion.desktopAmplitude;
     const split = compactMotion.matches ? motion.compactSplit : motion.desktopSplit;
@@ -723,16 +775,16 @@
   }
 
   function updateRunState() {
-    if (reducedMotion.matches) {
+    if (window.siteMotion.stopped) {
       if (state === "opening") settleDetail(true);
       if (state === "closing") settleOverview(active?.id);
     }
-    const shouldRun = pageActive && !document.hidden && isIntersecting && !reducedMotion.matches;
+    const shouldRun = pageActive && !document.hidden && isIntersecting && !window.siteMotion.stopped;
     if (!shouldRun) {
       if (frameId !== null) window.cancelAnimationFrame(frameId);
       frameId = null;
       lastTimestamp = null;
-      if (reducedMotion.matches) drawStatic();
+      if (window.siteMotion.stopped) drawStatic();
       return;
     }
     if (frameId === null) {
@@ -741,7 +793,7 @@
     }
   }
 
-  async function openProject(project, moveFocus) {
+  async function openProject(project, moveFocus, restoreY = 0) {
     const version = ++requestVersion;
     const previousState = state;
     const previousProgress = progress;
@@ -751,7 +803,6 @@
     if (previousState === "overview") {
       overviewScrollY = window.scrollY;
       hasOverviewScroll = true;
-      window.scrollTo(0, 0);
     }
     const projectChanged = active?.id !== project.id;
     active = project;
@@ -763,9 +814,11 @@
     focusedId = null;
     showPreview();
     positionDetailContent();
+    if (mobileNav.matches || previousState === 'overview') window.scrollTo(0, restoreY);
+    if (mobileNav.matches) requestAnimationFrame(() => { if (version === requestVersion) window.scrollTo(0, restoreY); });
     stage.setAttribute("aria-busy", "true");
     // A changed URL can request another detail while one is already visible.
-    if (reducedMotion.matches || (previousState !== "overview" &&
+    if (window.siteMotion.stopped || (previousState !== "overview" &&
         previousState !== "closing" && previousProjectId !== project.id)) {
       settleDetail(moveFocus);
       return;
@@ -806,7 +859,7 @@
       return;
     }
     stage.setAttribute("aria-busy", "true");
-    if (reducedMotion.matches) {
+    if (window.siteMotion.stopped) {
       settleOverview(project.id);
       source.style.pointerEvents = "";
       return;
@@ -845,13 +898,50 @@
     if (!project) {
       closeProject();
     } else if (active?.id !== project.id || state === "closing") {
-      openProject(project, true);
+      openProject(project, !mobileNav.matches, mobileNav.matches ? history.state?.readingY || 0 : 0);
     }
   }
 
+  function saveReadingPosition() {
+    history.replaceState({ ...history.state, readingY: window.scrollY }, '', location.href);
+  }
+
+  function navigateProject(project) {
+    if (!mobileNav.matches) {
+      history.pushState({ projectsPage: true }, '', `#${project.id}`);
+      openProject(project, true);
+      return;
+    }
+    saveReadingPosition();
+    const depth = state === 'overview' ? 1 : history.state?.overviewDepth ? history.state.overviewDepth + 1 : 0;
+    history.pushState({ projectsPage: true, overviewDepth: depth, readingY: 0 }, '', `#${project.id}`);
+    openProject(project, true);
+  }
+
+  function adjacentProject(direction) {
+    if (!active) return;
+    navigateProject(projects[mod(projects.indexOf(active) + direction, projects.length)]);
+  }
+  previousButton.addEventListener('click', () => adjacentProject(-1));
+  nextButton.addEventListener('click', () => adjacentProject(1));
+  window.addHorizontalSwipe(document.querySelector('.projects-main'), (direction) => {
+    if (state === 'overview') location.href = 'who-i-am.html';
+    else if (state !== 'closing') adjacentProject(direction);
+  });
+
   function returnToProjects() {
-    if (history.state?.projectsPage) {
-      history.back();
+    if (!mobileNav.matches && !history.state?.overviewDepth) {
+      if (history.state?.projectsPage) history.back();
+      else {
+        history.replaceState(null, '', location.pathname + location.search);
+        closeProject();
+      }
+      return;
+    }
+    returnFocusId = active?.id;
+    saveReadingPosition();
+    if (history.state?.overviewDepth) {
+      history.go(-history.state.overviewDepth);
     } else {
       history.replaceState(null, "", location.pathname + location.search);
       closeProject();
@@ -859,28 +949,43 @@
   }
 
   back.addEventListener("click", returnToProjects);
-  projectsLink.addEventListener("click", (event) => {
+  projectsLinks.forEach((projectsLink) => projectsLink.addEventListener("click", (event) => {
     if (state === "overview" || event.button !== 0 || event.metaKey ||
         event.ctrlKey || event.shiftKey || event.altKey) return;
     event.preventDefault();
     if (state !== "closing") returnToProjects();
-  });
+  }));
   document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape" && state !== "overview") back.click();
+    if (!event.defaultPrevented && event.key === "Escape" && state !== "overview") back.click();
   });
   window.addEventListener("popstate", syncFromLocation);
   window.addEventListener("hashchange", syncFromLocation);
-  window.addEventListener("resize", () => {
+  function reflow() {
+    projects.forEach((project) => {
+      const button = buttons.get(project.id);
+      if (mobileNav.matches) button.title = project.title;
+      else button.removeAttribute('title');
+    });
+    pagination.hidden = !mobileNav.matches || !active;
+    overviewNavigation.hidden = !mobileNav.matches || Boolean(active);
+    if (active) {
+      copy.hidden = !mobileNav.matches && !copy.childElementCount;
+      metaText.textContent = mobileNav.matches ? active.meta || '' : (active.meta || '').replace(/ · /g, '\u00a0·\u00a0');
+    }
+    updateTransitionView();
     updateGeometry();
     positionDetailContent();
     updateNavRelease();
     if ((state === "opening" || state === "closing") && active) prepareBuffers(active).then(() => drawMotion());
     else drawMotion();
-  });
+  }
+  window.addEventListener('resize', reflow);
+  mobileNav.addEventListener('change', reflow);
   window.addEventListener("scroll", queueNavRelease, { passive: true });
   document.addEventListener("visibilitychange", updateRunState);
   window.addEventListener("pagehide", () => {
     pageActive = false;
+    saveReadingPosition();
     history.scrollRestoration = originalScrollRestoration;
     updateRunState();
   });
@@ -889,7 +994,7 @@
     history.scrollRestoration = state === "overview" ? originalScrollRestoration : "manual";
     updateRunState();
   });
-  reducedMotion.addEventListener("change", () => {
+  window.siteMotion.subscribe(() => {
     updateRunState();
     updateNavRelease();
   });
@@ -911,6 +1016,7 @@
     experience.classList.add("is-detail");
     showTarget(initialProject);
     settleDetail(false);
+    window.scrollTo(0, history.state?.readingY || 0);
   } else {
     settleOverview();
   }

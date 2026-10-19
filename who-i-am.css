@@ -89,19 +89,23 @@
 
 .who-keepsake.is-active .who-keepsake__original { opacity: 1; }
 
-@media (max-width: 640px) {
-  .who-main {
-    min-height: 0;
-    padding: 28px 20px 60px;
-  }
-  .who-figure {
-    width: min(276px, calc(100vw - 88px));
-    max-width: none;
-    transform: none;
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
   .who-figure__motion { will-change: auto; }
   .who-keepsake__original { transition: none; }
+}
+
+@media (max-width: 640px), (hover: none) and (pointer: coarse) {
+  .who-main {
+    min-height: 0;
+    padding: 12px max(20px, env(safe-area-inset-right)) calc(72px + env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left));
+  }
+  .who-figure {
+    width: clamp(184px, calc((100svh - 240px) * 276 / 900), 276px);
+    max-width: none; transform: none;
+  }
+  .who-keepsake.is-selected { outline: 1px dashed #2b2118; outline-offset: 3px; }
+  .who-keepsake::before {
+    content: ''; position: absolute; top: 50%; left: 50%;
+    width: max(100%, 44px); height: max(100%, 44px); transform: translate(-50%, -50%);
+  }
 }

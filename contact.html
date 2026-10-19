@@ -2,176 +2,17 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Contact | Emma Xu</title>
     <link rel="stylesheet" href="global.css">
-    <style>
-      :root {
-        color-scheme: dark;
-        --contact-ink: #f7eee0;
-        --contact-background: #130d08;
-      }
-      * { box-sizing: border-box; }
-      html { background: var(--contact-background); }
-      body {
-        min-height: calc(100vh + var(--scroll-distance, 480vh));
-        margin: 0;
-        overflow-x: hidden;
-        background: var(--contact-background);
-        color: var(--contact-ink);
-        font-family: "Courier New", Courier, monospace;
-      }
-      .contact-background {
-        position: fixed;
-        inset: 0;
-        pointer-events: none;
-        z-index: 0;
-        overflow: hidden;
-        background: #130d08;
-      }
-      .contact-background canvas {
-        display: block;
-        width: 100%;
-        height: 100%;
-        background: linear-gradient(105deg, #5b250f 0%, #25130c 31%, transparent 63%),
-          linear-gradient(168deg, #59230f 0%, #130d08 37%);
-      }
-      .contact-stage {
-        position: fixed;
-        inset: 0;
-        z-index: 2;
-        isolation: isolate;
-      }
-      .contact-intro {
-        position: absolute;
-        display: flex;
-        flex-direction: column;
-        gap: var(--line-gap, 0px);
-        top: auto;
-        bottom: 59vh;
-        left: 50%;
-        width: min(88vw, 1080px);
-        margin: 0;
-        color: var(--contact-ink);
-        font-size: clamp(10px, 0.9vw, 15px);
-        font-weight: 700;
-        line-height: 1.1;
-        text-align: center;
-        transform: translateX(-50%);
-      }
-      .intro-row {
-        display: block;
-        flex: none;
-      }
-      .intro-line {
-        display: block;
-        transform: scaleY(var(--line-scale, 1));
-        transform-origin: center top;
-        white-space: nowrap;
-      }
-      .contact-page .site-nav {
-        top: 55%;
-        z-index: 3;
-        color: #fff;
-        font-family: courier, monospace;
-      }
-      .contact-menu { position: relative; }
-      .contact-submenu a {
-        min-height: 44px;
-        padding: 12px 0;
-        font-size: clamp(12px, 0.9vw, 15px);
-        line-height: 20px;
-      }
-      .contact-submenu {
-        position: absolute;
-        top: 50%;
-        left: 100%;
-        display: flex;
-        align-items: center;
-        gap: 14px;
-        padding-left: 16px;
-        visibility: hidden;
-        opacity: 0;
-        pointer-events: none;
-        transform: translateY(-50%) translateX(-8px);
-        transition: opacity 180ms ease, transform 180ms ease, visibility 0s linear 180ms;
-        white-space: nowrap;
-      }
-      .contact-menu:hover .contact-submenu,
-      .contact-menu:focus-within .contact-submenu,
-      .contact-menu.is-open .contact-submenu {
-        visibility: visible;
-        opacity: 1;
-        pointer-events: auto;
-        transform: translateY(-50%) translateX(0);
-        transition-delay: 0s;
-      }
-      .scroll-cue {
-        position: absolute;
-        bottom: 8vh;
-        left: 50%;
-        display: grid;
-        justify-items: center;
-        gap: 4px;
-        color: var(--contact-ink);
-        font-size: clamp(10px, 0.75vw, 13px);
-        transform: translateX(-50%);
-      }
-      .scroll-cue span:last-child {
-        font-size: 18px;
-        line-height: 1;
-      }
-      @media (prefers-reduced-motion: reduce) {
-        .contact-submenu {
-          transition: none;
-        }
-      }
-      @media (max-width: 640px) {
-        body { min-height: 100svh; }
-        .contact-stage {
-          position: relative;
-          min-height: 100svh;
-        }
-        .contact-intro {
-          top: auto;
-          bottom: 32svh;
-          width: calc(100% - 32px);
-          font-size: clamp(10px, 2.7vw, 13px);
-        }
-        .intro-line { white-space: normal; }
-        .contact-page .site-nav {
-          top: auto;
-          bottom: 11svh;
-          transform: translateX(-50%);
-        }
-        .contact-menu { position: static; }
-        .contact-submenu {
-          top: 100%;
-          left: 50%;
-          width: min(calc(100vw - 32px), 360px);
-          flex-wrap: wrap;
-          justify-content: center;
-          gap: 12px;
-          padding: 0;
-          visibility: visible;
-          opacity: 1;
-          pointer-events: auto;
-          transform: translateX(-50%);
-          transition: none;
-        }
-        .contact-menu:hover .contact-submenu,
-        .contact-menu:focus-within .contact-submenu,
-        .contact-menu.is-open .contact-submenu { transform: translateX(-50%); }
-        .contact-submenu a { min-height: 32px; padding: 6px 0; }
-        .scroll-cue { display: none; }
-      }
-    </style>
+    <link rel="stylesheet" href="contact.css">
   </head>
   <body class="contact-page" data-stretch-section data-liquid-root>
     <div class="contact-background" aria-hidden="true">
       <canvas data-liquid-surface></canvas>
     </div>
     <main class="contact-stage">
+      <h1 class="visually-hidden">Contact</h1>
       <p class="contact-intro" aria-label="Introduction">
         <span class="intro-row"><span class="intro-line">Hi! I’m a final year computing and software systems major at the</span></span>
         <span class="intro-row"><span class="intro-line">University of Melbourne. If you have stumbled here by chance, please</span></span>
@@ -198,90 +39,9 @@
       </nav>
       <div class="scroll-cue" aria-hidden="true"><span>scroll?</span><span>↓</span></div>
     </main>
-    <script>
-      const textStretch = {
-        scrollDistance: 8, // Viewports of scrolling; lower values finish sooner.
-        topOvershootVh: 20, // How far the top line passes beyond the viewport at the end.
-        topGrowthWeight: 1.65, // Higher lines receive more of the total height increase.
-        bottomGrowthWeight: 0.1,
-        lineGap: 0, // Fixed space between lines, in pixels.
-      };
-      const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
-      const stretchSection = document.querySelector("[data-stretch-section]");
-      const stretchIntro = document.querySelector(".contact-intro");
-      const stretchRows = [...stretchIntro.querySelectorAll(".intro-row")];
-      const stretchWeights = stretchRows.map((row, index) => {
-        const linePosition = stretchRows.length === 1 ? 0 : index / (stretchRows.length - 1);
-        return textStretch.topGrowthWeight +
-          (textStretch.bottomGrowthWeight - textStretch.topGrowthWeight) * linePosition;
-      });
-      const totalStretchWeight = stretchWeights.reduce((sum, weight) => sum + weight, 0);
-      const mobileContactMenu = window.matchMedia("(max-width: 640px)");
-      let scrollFrame;
-      stretchSection.style.setProperty("--scroll-distance", `${textStretch.scrollDistance * 100}vh`);
-      stretchIntro.style.setProperty("--line-gap", `${textStretch.lineGap}px`);
-
-      function updateStretch() {
-        scrollFrame = undefined;
-        if (prefersReducedMotion.matches || mobileContactMenu.matches) {
-          stretchRows.forEach((row) => {
-            row.style.height = "";
-            row.style.setProperty("--line-scale", 1);
-          });
-          return;
-        }
-        const scrollRange = Math.max(document.documentElement.scrollHeight - window.innerHeight, 1);
-        const progress = Math.min(1, Math.max(0, window.scrollY / scrollRange));
-        const baseLineHeight = parseFloat(getComputedStyle(stretchRows[0].firstElementChild).lineHeight);
-        const baseTextHeight = baseLineHeight * stretchRows.length +
-          textStretch.lineGap * (stretchRows.length - 1);
-        const finalTextHeight = stretchIntro.getBoundingClientRect().bottom +
-          window.innerHeight * textStretch.topOvershootVh / 100;
-        const extraHeight = Math.max(0, finalTextHeight - baseTextHeight);
-        stretchRows.forEach((row, index) => {
-          const lineHeight = baseLineHeight +
-            progress * extraHeight * stretchWeights[index] / totalStretchWeight;
-          const scale = lineHeight / baseLineHeight;
-          row.style.height = `${lineHeight.toFixed(3)}px`;
-          row.style.setProperty("--line-scale", scale.toFixed(4));
-        });
-      }
-      function requestStretchUpdate() {
-        if (!scrollFrame) scrollFrame = window.requestAnimationFrame(updateStretch);
-      }
-      window.addEventListener("scroll", requestStretchUpdate, { passive: true });
-      window.addEventListener("resize", requestStretchUpdate);
-      prefersReducedMotion.addEventListener("change", requestStretchUpdate);
-      updateStretch();
-      const contactMenu = document.querySelector(".contact-menu");
-      const contactTrigger = document.querySelector(".contact-link");
-      function setContactMenuOpen(isOpen) {
-        const shouldOpen = mobileContactMenu.matches || isOpen;
-        contactMenu.classList.toggle("is-open", shouldOpen);
-        contactTrigger.setAttribute("aria-expanded", String(shouldOpen));
-      }
-      contactTrigger.addEventListener("click", (event) => {
-        event.preventDefault();
-        if (mobileContactMenu.matches) return;
-        setContactMenuOpen(true);
-      });
-      contactMenu.addEventListener("mouseenter", () => setContactMenuOpen(true));
-      contactMenu.addEventListener("mouseleave", () => {
-        if (!contactMenu.contains(document.activeElement)) setContactMenuOpen(false);
-      });
-      contactMenu.addEventListener("focusin", () => setContactMenuOpen(true));
-      contactMenu.addEventListener("focusout", () => {
-        window.setTimeout(() => {
-          if (!contactMenu.contains(document.activeElement)) setContactMenuOpen(false);
-        }, 0);
-      });
-      mobileContactMenu.addEventListener("change", () => {
-        setContactMenuOpen(mobileContactMenu.matches);
-        requestStretchUpdate();
-      });
-      setContactMenuOpen(mobileContactMenu.matches);
-    </script>
+    <script src="experience.js"></script>
     <script src="navigation.js"></script>
+    <script src="contact.js"></script>
     <script src="liquid.js"></script>
   </body>
 </html>

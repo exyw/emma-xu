@@ -109,7 +109,6 @@
     if (figure.dataset.motionInitialized) return;
     figure.dataset.motionInitialized = "true";
 
-    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
     const compactMotion = window.matchMedia("(max-width: 640px), (max-height: 740px)");
     const artwork = makeArtwork(index);
     const moving = document.createElement("div");
@@ -122,12 +121,16 @@
     let focusedId = null;
     let selectedId = null;
     let pointerType = null;
+    let ghostId = null;
+    let ghost = null;
 
     function renderActive() {
-      const activeId = focusedId || hoveredId || selectedId;
+      const activeId = window.siteLayout.matches ? selectedId || focusedId || hoveredId || ghostId : focusedId || hoveredId || selectedId;
       buttons.forEach((button, id) => {
         button.classList.toggle("is-active", id === activeId);
         button.setAttribute("aria-pressed", String(id === selectedId));
+        button.classList.toggle("is-selected", id === selectedId);
+        button.querySelector('.who-keepsake__original')?.setAttribute('aria-hidden', String(id !== selectedId));
       });
     }
 
@@ -136,7 +139,8 @@
       button.type = "button";
       button.className = "who-keepsake";
       button.dataset.keepsake = item.id;
-      button.setAttribute("aria-label", `${item.label} keepsake${item.original ? "" : ", original image pending"}`);
+      button.setAttribute("aria-label", `${item.label} keepsake`);
+      if (!item.original) button.setAttribute('aria-description', 'ASCII keepsake. An original image has not been supplied.');
       button.setAttribute("aria-pressed", "false");
       button.style.left = `${((item.x - illustration.pageX) / illustration.width) * 100}%`;
       button.style.top = `${((item.y - illustration.pageY) / illustration.height) * 100}%`;
@@ -147,7 +151,7 @@
         const original = document.createElement("img");
         original.className = "who-keepsake__original";
         original.src = `assets/contact/images/${item.original}`;
-        original.alt = "";
+        original.alt = `${item.label}, original image`;
         original.setAttribute("aria-hidden", "true");
         original.draggable = false;
         button.append(original);
@@ -162,24 +166,29 @@
 
       button.addEventListener("pointerdown", (event) => {
         pointerType = event.pointerType;
+        ghost?.quiet();
         focusedId = null;
+        if (event.pointerType !== 'mouse') hoveredId = null;
         if (event.pointerType === "mouse") hoveredId = item.id;
         renderActive();
       });
       button.addEventListener("focus", () => {
         focusedId = button.matches(":focus-visible") ? item.id : null;
+        ghost?.sync();
         renderActive();
       });
       button.addEventListener("blur", () => {
         if (focusedId === item.id) focusedId = null;
+        ghost?.quiet();
         renderActive();
       });
       button.addEventListener("click", (event) => {
-        if (event.detail === 0 || pointerType === "touch" || pointerType === "pen") {
-          selectedId = selectedId === item.id ? null : item.id;
-          renderActive();
-        }
+        if (!window.siteLayout.matches && event.detail !== 0 && pointerType !== 'touch' && pointerType !== 'pen') return;
         pointerType = null;
+        selectedId = selectedId === item.id ? null : item.id;
+        focusedId = null;
+        ghost?.quiet();
+        renderActive();
       });
       buttons.set(item.id, button);
       moving.append(button);
@@ -201,19 +210,44 @@
       }
       if (nextId === hoveredId) return;
       hoveredId = nextId;
+      ghost?.quiet();
       renderActive();
     });
-    document.addEventListener("pointerdown", (event) => {
-      if (figure.contains(event.target)) return;
+    document.addEventListener('pointerdown', (event) => {
+      if (window.siteLayout.matches || figure.contains(event.target)) return;
       selectedId = null;
       focusedId = null;
       renderActive();
     });
-    document.addEventListener("keydown", (event) => {
-      if (event.key !== "Escape") return;
+    window.siteLayout.addEventListener('change', () => { selectedId = null; hoveredId = null; focusedId = null; ghost?.quiet(); renderActive(); });
+    const main = document.querySelector('.who-main');
+    ghost = window.createGhostPreview({
+      element: figure, ids: keepsakes.filter((item) => item.original).map((item) => item.id),
+      show(id) { ghostId = id; renderActive(); },
+      blocked: () => Boolean(selectedId || focusedId || hoveredId),
+    });
+    main.addEventListener('click', (event) => {
+      if (!window.siteLayout.matches) return;
+      if (event.target.closest('button, a, .overview-navigation')) return;
       selectedId = null;
+      focusedId = null;
+      hoveredId = null;
+      ghost.quiet();
       renderActive();
     });
+    window.addHorizontalSwipe(main, () => {
+      selectedId = null;
+      ghost.quiet();
+      location.href = 'projects.html';
+    });
+    document.addEventListener('keydown', (event) => {
+      if (event.key !== 'Escape') return;
+      selectedId = null;
+      focusedId = null;
+      ghost.quiet();
+      renderActive();
+    });
+    window.addEventListener('pagehide', () => { selectedId = null; hoveredId = null; focusedId = null; renderActive(); });
 
     let time = motion.initialTime;
     let lastTimestamp = null;
@@ -265,12 +299,12 @@
     }
 
     function updateRunState() {
-      const shouldRun = pageActive && !document.hidden && isIntersecting && !reducedMotion.matches;
+      const shouldRun = pageActive && !document.hidden && isIntersecting && !window.siteMotion.stopped;
       if (!shouldRun) {
         if (frameId !== null) window.cancelAnimationFrame(frameId);
         frameId = null;
         lastTimestamp = null;
-        if (reducedMotion.matches) drawStatic();
+        if (window.siteMotion.stopped) drawStatic();
         return;
       }
       if (frameId === null) {
@@ -288,8 +322,8 @@
     document.addEventListener("visibilitychange", updateRunState);
     window.addEventListener("pagehide", () => { pageActive = false; updateRunState(); });
     window.addEventListener("pageshow", () => { pageActive = true; updateRunState(); });
-    reducedMotion.addEventListener("change", updateRunState);
-    compactMotion.addEventListener("change", () => { if (frameId === null && !reducedMotion.matches) drawMotion(); });
+    window.siteMotion.subscribe(updateRunState);
+    compactMotion.addEventListener("change", () => { if (frameId === null && !window.siteMotion.stopped) drawMotion(); });
     updateRunState();
   });
 })();

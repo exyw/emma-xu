@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Projects | Emma Xu</title>
     <script src="projects-config.js"></script>
     <script>
@@ -26,7 +26,8 @@
       <a class="contact-link" href="contact.html">Contact</a>
     </nav>
 
-    <main class="projects-main">
+    <main class="projects-main swipe-surface">
+      <h1 class="visually-hidden projects-overview-title">Projects</h1>
       <section class="projects-experience" aria-label="Projects">
         <header class="projects-heading" hidden>
           <button class="projects-back" type="button">← All projects</button>
@@ -37,9 +38,19 @@
         </header>
         <div class="projects-stage" data-project-stage role="group" aria-label="Select a project from the ASCII portrait"></div>
         <div class="projects-copy" hidden></div>
+        <nav class="project-pagination" aria-label="Project navigation" hidden>
+          <button class="project-previous" type="button"></button>
+          <span class="project-position"></span>
+          <button class="project-next" type="button"></button>
+        </nav>
+        <nav class="overview-navigation" aria-label="Portrait views">
+          <a href="projects.html" aria-current="page">Projects</a>
+          <a href="who-i-am.html">Who I Am →</a>
+        </nav>
       </section>
     </main>
 
+    <script src="experience.js"></script>
     <script src="navigation.js"></script>
     <script src="projects-morph-data.js"></script>
     <script src="projects.js"></script>

@@ -1,5 +1,4 @@
 (() => {
-  const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
   const vertexSource = `
     attribute vec2 a_position;
     varying vec2 v_uv;
@@ -151,12 +150,13 @@
 
     const pointer = { x: 0.5, y: 0.5, target: 0, strength: 0 };
     let inView = false;
+    let pageActive = true;
     let frame;
     let previousTime = 0;
     let elapsed = 0;
 
     function movePointer(event) {
-      if (reducedMotion.matches || (event.pointerType === "touch" && event.buttons === 0)) return;
+      if (window.siteMotion.stopped || (event.pointerType === "touch" && event.buttons === 0)) return;
       const bounds = canvas.getBoundingClientRect();
       if (!bounds.width || !bounds.height) return;
       const x = (event.clientX - bounds.left) / bounds.width;
@@ -217,8 +217,8 @@
       previousTime = 0;
     }
     function start() {
-      if (!inView || document.hidden) return;
-      if (reducedMotion.matches) {
+      if (!inView || document.hidden || !pageActive) return;
+      if (window.siteMotion.stopped) {
         pointer.strength = 0;
         elapsed = 0;
         draw();
@@ -233,6 +233,8 @@
       else stop();
     }, { rootMargin: "200px" });
     observer.observe(canvas);
+    window.addEventListener('pagehide', () => { pageActive = false; stop(); });
+    window.addEventListener('pageshow', () => { pageActive = true; start(); });
     window.addEventListener("resize", () => {
       if (inView) draw();
     });
@@ -240,7 +242,7 @@
       if (document.hidden) stop();
       else start();
     });
-    reducedMotion.addEventListener("change", () => {
+    window.siteMotion.subscribe(() => {
       stop();
       releasePointer();
       start();

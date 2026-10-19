@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
   <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Who I am | Emma Xu</title>
     <link rel="stylesheet" href="global.css">
     <link rel="stylesheet" href="who-i-am.css">
@@ -17,10 +17,16 @@
       <a class="contact-link" href="contact.html">Contact</a>
     </nav>
 
-    <main class="who-main" aria-label="Who I am">
+    <main class="who-main swipe-surface" aria-label="Who I am">
+      <h1 class="visually-hidden">Who I Am</h1>
       <div class="who-figure" data-keepsake-figure role="group" aria-label="Keepsakes in an ASCII portrait"></div>
+      <nav class="overview-navigation" aria-label="Portrait views">
+        <a href="projects.html">← Projects</a>
+        <a href="who-i-am.html" aria-current="page">Who I Am</a>
+      </nav>
     </main>
 
+    <script src="experience.js"></script>
     <script src="navigation.js"></script>
     <script src="who-i-am.js"></script>
   </body>
