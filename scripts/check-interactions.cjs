@@ -535,13 +535,18 @@ async function flush(p) { await new Promise((resolve) => setTimeout(resolve, 0))
   const projectedSource = label(alignment, '.projects-figure');
   const morph = label(alignment, '.projects-morph');
   const projectedTop = alignmentStage.getBoundingClientRect().top + parseFloat(projectedSource.style.top);
+  const projectedLeft = alignmentStage.getBoundingClientRect().left + parseFloat(projectedSource.style.left);
   check(alignment.w.scrollY === 300 && Math.abs(projectedTop - 132) < 1 &&
+    parseFloat(morph.style.left) <= parseFloat(projectedSource.style.left) &&
+    parseFloat(morph.style.left) + parseFloat(morph.style.width) >=
+      parseFloat(projectedSource.style.left) + parseFloat(projectedSource.style.width) &&
     parseFloat(morph.style.top) + parseFloat(morph.style.height) >=
       parseFloat(projectedSource.style.top) + parseFloat(projectedSource.style.height),
   'Mobile return morph reaches the centred overview portrait without clipping');
   alignment.advance(1500);
   const settledTop = alignmentStage.getBoundingClientRect().top + parseFloat(projectedSource.style.top);
-  check(Math.abs(settledTop - projectedTop) < 1,
+  const settledLeft = alignmentStage.getBoundingClientRect().left + parseFloat(projectedSource.style.left);
+  check(Math.abs(settledTop - projectedTop) < 1 && Math.abs(settledLeft - projectedLeft) < 1,
     'Mobile overview portrait stays in place when the return morph settles');
   alignment.close();
 
