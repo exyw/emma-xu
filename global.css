@@ -227,6 +227,75 @@ body {
   }
   .overview-navigation a { display: inline-flex; min-height: 44px; align-items: center; color: inherit; text-underline-offset: 3px; }
   .overview-navigation [aria-current] { font-weight: bold; text-decoration: none; }
+  .projects-initial-detail .projects-page .site-nav--portrait,
+  .projects-page:not(.portrait-overview-page) .site-nav--portrait { display: none; }
+  html:not(.projects-initial-detail) .portrait-overview-page {
+    --portrait-side-width: clamp(184px, calc((100svh - 240px) * 276 / 900), 276px);
+    --portrait-side-gap: clamp(2px, calc((100vw - var(--portrait-side-width)) / 2 - 70px), 12px);
+    position: relative;
+    min-height: 100svh;
+  }
+  html:not(.projects-initial-detail) .portrait-overview-page .site-nav--portrait {
+    position: absolute; top: 50%; bottom: auto;
+    right: calc(50% + var(--portrait-side-width) / 2 + var(--portrait-side-gap)); left: auto;
+    display: grid; grid-template-columns: max-content; grid-template-rows: repeat(3, 44px);
+    width: auto; margin: 0; padding: 0; gap: 0; transform: translateY(-50%);
+    flex-wrap: nowrap; white-space: nowrap;
+  }
+  html:not(.projects-initial-detail) .portrait-overview-page .site-nav--portrait .page-menu { display: contents; }
+  html:not(.projects-initial-detail) .portrait-overview-page .site-nav--portrait .page-menu > a {
+    position: relative; top: auto; left: auto; width: auto; transform: none;
+  }
+  html:not(.projects-initial-detail) .portrait-overview-page .site-nav--portrait a {
+    min-height: 44px; padding: 12px 4px; font-size: 12px;
+  }
+  html:not(.projects-initial-detail) .portrait-overview-page .site-nav--portrait .page-menu > a[href="index.html"] .typewriter-link__text {
+    transform: translateY(10px);
+  }
+  html:not(.projects-initial-detail) .portrait-overview-page .site-nav--portrait .contact-link .typewriter-link__text {
+    transform: translateY(-10px);
+  }
+  html:not(.projects-initial-detail) .portrait-overview-page .site-nav--portrait .page-menu > a[href="index.html"] {
+    grid-row: 1; transform: none;
+  }
+  html:not(.projects-initial-detail) .portrait-overview-page .site-nav--portrait .page-menu:not(.is-open) > a[href="index.html"] {
+    visibility: hidden; opacity: 0; pointer-events: none;
+  }
+  html:not(.projects-initial-detail) .portrait-overview-page .site-nav--portrait .page-menu > a.selected {
+    grid-row: 2; visibility: visible; opacity: 1; pointer-events: auto;
+  }
+  html:not(.projects-initial-detail) .portrait-overview-page .site-nav--portrait .page-menu > a:not(.selected):not([href="index.html"]) {
+    display: none;
+  }
+  html:not(.projects-initial-detail) .portrait-overview-page .site-nav--portrait .contact-link {
+    grid-row: 3; margin: 0; visibility: hidden; opacity: 0; pointer-events: none;
+    transition: opacity 200ms ease, visibility 0s linear 200ms;
+  }
+  html:not(.projects-initial-detail) .portrait-overview-page .site-nav--portrait:has(.page-menu.is-open) .contact-link {
+    visibility: visible; opacity: 1; pointer-events: auto; transition-delay: 0s;
+  }
+  html:not(.projects-initial-detail) .portrait-overview-page .overview-navigation {
+    position: absolute; z-index: 5; top: 50%;
+    left: calc(50% + var(--portrait-side-width) / 2 + var(--portrait-side-gap)); right: auto;
+    width: auto;
+    max-width: calc(50vw - var(--portrait-side-width) / 2 - var(--portrait-side-gap));
+    margin: 0; padding: 0;
+    transform: translateY(-50%); font-size: 12px;
+  }
+  html:not(.projects-initial-detail) .who-page.portrait-overview-page .site-nav--portrait {
+    left: calc(50% + var(--portrait-side-width) / 2 + var(--portrait-side-gap)); right: auto;
+  }
+  html:not(.projects-initial-detail) .who-page.portrait-overview-page .overview-navigation {
+    right: calc(50% + var(--portrait-side-width) / 2 + var(--portrait-side-gap)); left: auto;
+  }
+  html:not(.projects-initial-detail) .portrait-overview-page .overview-navigation a {
+    box-sizing: border-box; display: flex; flex-wrap: wrap; align-content: center;
+    justify-content: flex-start; gap: 0 0.4ch; max-width: 100%; min-height: 44px;
+    padding: 2px 4px; line-height: 18px; text-decoration: none;
+  }
+  html:not(.projects-initial-detail) .who-page.portrait-overview-page .overview-navigation a {
+    justify-content: flex-end;
+  }
   .swipe-surface { touch-action: pan-y pinch-zoom; }
   .motion-stopped *, .motion-stopped *::before, .motion-stopped *::after {
     animation: none !important; transition: none !important; scroll-behavior: auto !important;

@@ -138,11 +138,15 @@
       typeNextCharacter();
     }
 
-    const sequencedHomeLink = () => window.siteLayout.matches &&
-      link.matches('a[href="projects.html"], a[href="who-i-am.html"]') &&
-      Boolean(link.closest('.home-page .page-menu.is-open'));
+    const sequencedMenuLink = () => window.siteLayout.matches && (
+      (link.matches('a[href="projects.html"], a[href="who-i-am.html"]') &&
+        Boolean(link.closest('.home-page .page-menu.is-open'))) ||
+      (link.matches('a[href="index.html"], a[href="contact.html"]') &&
+        document.body.classList.contains('portrait-overview-page') &&
+        Boolean(link.closest('.site-nav--portrait:has(.page-menu.is-open)')))
+    );
     listen("mouseenter", () => {
-      if (sequencedHomeLink()) return;
+      if (sequencedMenuLink()) return;
       isHovered = true;
       typeLabel();
     });
@@ -154,9 +158,9 @@
       text.textContent = label;
     }
 
-    listen("mouseleave", () => { if (!sequencedHomeLink()) resetLabel(); });
-    listen("focus", () => { if (!sequencedHomeLink()) typeLabel(); });
-    listen("blur", () => { if (!sequencedHomeLink()) resetLabel(); });
+    listen("mouseleave", () => { if (!sequencedMenuLink()) resetLabel(); });
+    listen("focus", () => { if (!sequencedMenuLink()) typeLabel(); });
+    listen("blur", () => { if (!sequencedMenuLink()) resetLabel(); });
     const writer = {
       reset: resetLabel, play: typeLabel,
       playOnce: (done) => typeLabel(done, false),
@@ -197,7 +201,10 @@
   document.querySelectorAll('.site-nav').forEach((nav, index) => {
     const menu = nav.querySelector('.page-menu');
     const trigger = menu.querySelector('a[href="index.html"]');
+    const selected = menu.querySelector('a.selected');
+    const contact = nav.querySelector('.contact-link');
     menu.id = `page-destinations-${index}`;
+    if (nav.classList.contains('site-nav--portrait')) contact.id ||= `contact-destination-${index}`;
     let open = false;
     let keyboard = false;
     let restoringFocus = false;
@@ -205,12 +212,27 @@
     let sequenceVersion = 0;
     let sequenceTimer = null;
     let pageActive = true;
-    const sequenceLinks = [menu.querySelector('a[href="projects.html"]'), menu.querySelector('a[href="who-i-am.html"]')];
+    const homeSequenceLinks = [menu.querySelector('a[href="projects.html"]'), menu.querySelector('a[href="who-i-am.html"]')];
+    const portraitSequenceLinks = [trigger, contact];
+    const sideOverview = () => window.siteLayout.matches && nav.classList.contains('site-nav--portrait') &&
+      document.body.classList.contains('portrait-overview-page') &&
+      !document.documentElement.classList.contains('projects-initial-detail');
+    const sequenceLinks = () => sideOverview() ? portraitSequenceLinks : homeSequenceLinks;
+    const disclosure = () => sideOverview() ? selected : trigger;
+    function syncDisclosure() {
+      for (const link of new Set([trigger, selected].filter(Boolean))) {
+        link.removeAttribute('aria-controls');
+        link.removeAttribute('aria-expanded');
+      }
+      if (!window.siteLayout.matches) return;
+      disclosure().setAttribute('aria-controls', sideOverview() ? `${menu.id} ${contact.id}` : menu.id);
+      disclosure().setAttribute('aria-expanded', String(open));
+    }
     const sequenceAllowed = () => sequenceRequested && open && window.siteLayout.matches &&
-      Boolean(nav.closest('.home-page')) && !motion.stopped && !document.hidden && pageActive;
+      (Boolean(nav.closest('.home-page')) || sideOverview()) && !motion.stopped && !document.hidden && pageActive;
     function runSequence(index, version) {
       if (version !== sequenceVersion || !sequenceAllowed()) return;
-      const writer = sequenceLinks[index].typewriter;
+      const writer = sequenceLinks()[index].typewriter;
       writer.playOnce(() => {
         if (version !== sequenceVersion || !sequenceAllowed()) return;
         writer.reset();
@@ -231,37 +253,33 @@
       else if (animateSequence) sequenceRequested = true;
       menu.classList.toggle('is-open', open);
       menu.classList.toggle('is-dismissed', !open);
-      if (window.siteLayout.matches) trigger.setAttribute('aria-expanded', String(open));
+      syncDisclosure();
       if (changed || restore || animateSequence) {
         menu.querySelectorAll('a').forEach((link) => link.typewriter?.reset());
+        if (nav.classList.contains('site-nav--portrait')) portraitSequenceLinks[1].typewriter?.reset();
         restartSequence();
       }
       window.syncNavigationState();
       if (restore) {
         restoringFocus = true;
-        trigger.focus();
+        disclosure().focus();
         restoringFocus = false;
       }
     }
     function configureLayout() {
       setOpen(false);
-      if (window.siteLayout.matches) {
-        trigger.setAttribute('aria-controls', menu.id);
-      } else {
-        trigger.removeAttribute('aria-controls');
-        trigger.removeAttribute('aria-expanded');
-      }
     }
     nav.addEventListener('site-nav-dismiss', () => setOpen(false));
+    nav.addEventListener('site-nav-layout', configureLayout);
     motion.subscribe(() => {
       if (sequenceRequested) {
-        sequenceLinks.forEach((link) => link.typewriter?.reset());
+        sequenceLinks().forEach((link) => link.typewriter?.reset());
         restartSequence();
       }
     });
     document.addEventListener('visibilitychange', () => {
       if (sequenceRequested) {
-        sequenceLinks.forEach((link) => link.typewriter?.reset());
+        sequenceLinks().forEach((link) => link.typewriter?.reset());
         restartSequence();
       }
     });
@@ -272,6 +290,12 @@
       if (!window.siteLayout.matches || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
       const link = event.target.closest('a');
       if (!link) return;
+      if (sideOverview() && link === selected) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        setOpen(!open, false, true);
+        return;
+      }
       if (link === trigger && (!open || trigger.hasAttribute('aria-current'))) {
         event.preventDefault();
         event.stopImmediatePropagation();
@@ -281,10 +305,10 @@
       setOpen(false);
     }, true);
     menu.addEventListener('pointerenter', (event) => {
-      if (window.siteLayout.matches && event.pointerType === 'mouse') setOpen(true);
+      if (window.siteLayout.matches && !sideOverview() && event.pointerType === 'mouse') setOpen(true);
     });
     menu.addEventListener('pointerleave', (event) => {
-      if (window.siteLayout.matches && event.pointerType === 'mouse' && !menu.contains(document.activeElement)) setOpen(false);
+      if (window.siteLayout.matches && !sideOverview() && event.pointerType === 'mouse' && !menu.contains(document.activeElement)) setOpen(false);
     });
     menu.addEventListener('focusin', () => {
       if (window.siteLayout.matches && keyboard && !restoringFocus) setOpen(true);
@@ -293,13 +317,14 @@
       if (!window.siteLayout.matches || event.key !== 'ArrowDown') return;
       event.preventDefault();
       setOpen(true);
-      menu.querySelector('a').focus();
+      (sideOverview() ? trigger : menu.querySelector('a')).focus();
     });
     document.addEventListener('pointerdown', (event) => {
       keyboard = false;
-      if (window.siteLayout.matches && open && !menu.contains(event.target)) {
+      const inside = sideOverview() ? nav.contains(event.target) : menu.contains(event.target);
+      if (window.siteLayout.matches && open && !inside) {
         setOpen(false);
-        if (menu.contains(document.activeElement)) document.activeElement.blur();
+        if ((sideOverview() ? nav : menu).contains(document.activeElement)) document.activeElement.blur();
       }
     });
     document.addEventListener('keydown', (event) => {
@@ -309,12 +334,12 @@
         event.preventDefault();
         event.stopImmediatePropagation();
         setOpen(false, true);
-      } else if (event.key === 'Tab' && menu.contains(document.activeElement)) {
+      } else if (event.key === 'Tab' && (sideOverview() ? nav : menu).contains(document.activeElement)) {
         setOpen(true);
       }
     });
-    menu.addEventListener('focusout', () => {
-      setTimeout(() => { if (window.siteLayout.matches && open && !menu.contains(document.activeElement)) setOpen(false); }, 0);
+    nav.addEventListener('focusout', () => {
+      setTimeout(() => { if (window.siteLayout.matches && open && !(sideOverview() ? nav : menu).contains(document.activeElement)) setOpen(false); }, 0);
     });
     window.siteLayout.addEventListener('change', configureLayout);
     nav.querySelectorAll('a').forEach(attachTypewriter);

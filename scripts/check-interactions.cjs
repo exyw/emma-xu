@@ -260,6 +260,152 @@ async function flush(p) { await new Promise((resolve) => setTimeout(resolve, 0))
     'Reduced motion shows centered menu immediately when spotlight disappears');
   stillSpotlight.close();
 
+  const sideWho = page('who-i-am.html', { reduced: true });
+  const whoNav = label(sideWho, '.site-nav--portrait');
+  const whoSelected = label(sideWho, '.page-menu a[href="who-i-am.html"]');
+  const whoEmma = label(sideWho, '.page-menu a[href="index.html"]');
+  const whoContact = label(sideWho, '.site-nav .contact-link');
+  const whoOtherLink = label(sideWho, '.overview-navigation a');
+  check(sideWho.w.getComputedStyle(whoNav).position === 'absolute' &&
+    sideWho.w.getComputedStyle(whoNav).display === 'grid' &&
+    sideWho.w.getComputedStyle(whoSelected).gridRow === '2' &&
+    sideWho.w.getComputedStyle(whoNav).left.includes('var(--portrait-side-width)') &&
+    sideWho.w.getComputedStyle(whoNav).right === 'auto' &&
+    whoSelected.getAttribute('aria-expanded') === 'false',
+  'Mobile Who I Am overview places the selected menu to the right of the portrait');
+  check(whoSelected.getAttribute('aria-controls').split(' ').includes(whoContact.id),
+    'Selected portrait label declares both revealed destinations as controlled content');
+  check(label(sideWho, '.overview-navigation').querySelectorAll('a').length === 1 &&
+    whoOtherLink.getAttribute('href') === 'projects.html' &&
+    sideWho.w.getComputedStyle(label(sideWho, '.overview-navigation')).position === 'absolute' &&
+    sideWho.w.getComputedStyle(label(sideWho, '.overview-navigation')).right.includes('var(--portrait-side-width)') &&
+    sideWho.w.getComputedStyle(whoOtherLink).minHeight === '44px',
+  'Existing Projects portrait link sits to the left without a duplicate');
+  check(whoOtherLink.querySelector('[aria-hidden="true"]')?.textContent === '←' &&
+    sideWho.w.getComputedStyle(whoOtherLink).textDecoration === 'none',
+  'The left portrait destination has a decorative swipe arrow and no underline');
+  check(sideWho.w.getComputedStyle(whoEmma).visibility === 'hidden' &&
+    sideWho.w.getComputedStyle(whoContact).visibility === 'hidden' &&
+    sideWho.w.getComputedStyle(label(sideWho, '.page-menu a[href="projects.html"]')).display === 'none',
+  'Emma Xu and Contact start hidden while the duplicate menu destination stays absent');
+  check(sideWho.w.getComputedStyle(whoEmma.querySelector('.typewriter-link__text')).transform === 'translateY(10px)' &&
+    sideWho.w.getComputedStyle(whoContact.querySelector('.typewriter-link__text')).transform === 'translateY(-10px)' &&
+    sideWho.w.getComputedStyle(whoEmma).minHeight === '44px' &&
+    sideWho.w.getComputedStyle(whoContact).minHeight === '44px',
+  'Who I Am overview labels sit closer vertically while their touch targets remain 44px');
+  sideWho.click(whoSelected);
+  check(whoSelected.getAttribute('aria-expanded') === 'true' &&
+    sideWho.w.getComputedStyle(whoEmma).visibility === 'visible' &&
+    sideWho.w.getComputedStyle(whoContact).visibility === 'visible',
+  'Selected Who I Am label reveals Emma Xu above and Contact below');
+  sideWho.click(whoSelected);
+  check(whoSelected.getAttribute('aria-expanded') === 'false' &&
+    sideWho.w.getComputedStyle(whoContact).visibility === 'hidden',
+  'Second selected-label tap closes the mobile overview menu');
+  let homeActivated = false;
+  whoEmma.addEventListener('click', (event) => { homeActivated = true; event.preventDefault(); });
+  sideWho.click(whoSelected);
+  sideWho.click(whoEmma);
+  check(homeActivated && whoSelected.getAttribute('aria-expanded') === 'false',
+  'Revealed Emma Xu link navigates directly instead of opening another menu');
+  let contactActivated = false;
+  whoContact.addEventListener('click', (event) => { contactActivated = true; event.preventDefault(); });
+  sideWho.click(whoSelected);
+  sideWho.click(whoContact);
+  check(contactActivated, 'Revealed Contact link remains tappable outside the page-menu container');
+  sideWho.d.dispatchEvent(new sideWho.w.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+  check(whoSelected.getAttribute('aria-expanded') === 'false' && sideWho.d.activeElement === whoSelected,
+  'Escape closes the side menu and restores focus to the selected page');
+  sideWho.close();
+
+  const typeWho = page('who-i-am.html');
+  const typeWhoSelected = label(typeWho, '.page-menu a.selected');
+  const portraitOrder = [];
+  for (const [name, link] of [['Emma Xu', label(typeWho, '.page-menu a[href="index.html"]')],
+    ['Contact', label(typeWho, '.site-nav .contact-link')]]) {
+    const playOnce = link.typewriter.playOnce;
+    link.typewriter.playOnce = (done) => { portraitOrder.push(name); playOnce(done); };
+  }
+  typeWho.click(typeWhoSelected);
+  typeWho.advance(220);
+  check(portraitOrder.join(',') === 'Emma Xu',
+    'Mobile portrait overview starts typing Emma Xu after the selected label opens the menu');
+  typeWho.advance(6000);
+  check(portraitOrder.slice(0, 3).join(',') === 'Emma Xu,Contact,Emma Xu',
+    'Emma Xu and Contact type in sequence and repeat while the overview menu stays open');
+  typeWho.click(typeWhoSelected);
+  const portraitStoppedCount = portraitOrder.length;
+  typeWho.advance(6000);
+  check(typeWhoSelected.getAttribute('aria-expanded') === 'false' &&
+    portraitOrder.length === portraitStoppedCount &&
+    !label(typeWho, '.site-nav .contact-link').classList.contains('is-typing'),
+  'Closing the overview menu cancels both typewriters');
+  typeWho.close();
+
+  const sideProjects = page('projects.html', { reduced: true });
+  const projectsSelected = label(sideProjects, '.site-nav .page-menu a[href="projects.html"]');
+  const projectsOtherLink = label(sideProjects, '.overview-navigation a');
+  check(sideProjects.d.body.classList.contains('portrait-overview-page') &&
+    sideProjects.w.getComputedStyle(label(sideProjects, '.site-nav--portrait')).position === 'absolute' &&
+    sideProjects.w.getComputedStyle(label(sideProjects, '.site-nav--portrait')).right.includes('var(--portrait-side-width)') &&
+    label(sideProjects, '.overview-navigation').querySelectorAll('a').length === 1 &&
+    projectsOtherLink.getAttribute('href') === 'who-i-am.html' &&
+    sideProjects.w.getComputedStyle(label(sideProjects, '.overview-navigation')).left.includes('var(--portrait-side-width)'),
+  'Projects overview uses the matching left-and-right portrait navigation');
+  check(projectsOtherLink.querySelector('[aria-hidden="true"]')?.textContent === '→' &&
+    sideProjects.w.getComputedStyle(projectsOtherLink).textDecoration === 'none',
+  'The right portrait destination has a decorative swipe arrow and no underline');
+  check(sideProjects.w.getComputedStyle(label(sideProjects, '.page-menu a[href="index.html"] .typewriter-link__text')).transform === 'translateY(10px)' &&
+    sideProjects.w.getComputedStyle(label(sideProjects, '.contact-link .typewriter-link__text')).transform === 'translateY(-10px)',
+  'Projects overview uses the same tighter vertical menu spacing');
+  sideProjects.click(projectsSelected);
+  check(projectsSelected.getAttribute('aria-expanded') === 'true' &&
+    sideProjects.w.getComputedStyle(label(sideProjects, '.site-nav .contact-link')).visibility === 'visible',
+  'Selected Projects label reveals the overview links');
+  sideProjects.click(label(sideProjects, '[data-project="chip"]'));
+  check(!sideProjects.d.body.classList.contains('portrait-overview-page') &&
+    sideProjects.w.getComputedStyle(label(sideProjects, '.site-nav--portrait')).display === 'none' &&
+    !label(sideProjects, '.projects-heading').hidden &&
+    sideProjects.w.getComputedStyle(label(sideProjects, '.projects-back')).display !== 'none' &&
+    label(sideProjects, '.overview-navigation').hidden &&
+    !projectsSelected.hasAttribute('aria-expanded'),
+  'Mobile project details hide the site navigation while retaining title and back controls');
+  sideProjects.click(label(sideProjects, '.projects-back'));
+  await flush(sideProjects);
+  check(sideProjects.d.body.classList.contains('portrait-overview-page') &&
+    projectsSelected.getAttribute('aria-expanded') === 'false' &&
+    !sideProjects.w.location.hash,
+  'All projects restores the overview navigation');
+  sideProjects.close();
+
+  const swipeWho = page('who-i-am.html', { reduced: true });
+  swipeWho.swipe(label(swipeWho, '.who-main'), -100);
+  check(swipeWho.errors.length === 0 && swipeWho.w.location.pathname.endsWith('/who-i-am.html'),
+    'Leftward swipe on Who I Am overview is ignored');
+  swipeWho.swipe(label(swipeWho, '.who-main'), 100);
+  check(swipeWho.errors.some((error) => error.message.includes('navigation')),
+    'Rightward swipe on Who I Am overview attempts the Projects navigation');
+  swipeWho.errors.length = 0; // jsdom reports cross-page navigation as unimplemented.
+  swipeWho.close();
+
+  const swipeProjects = page('projects.html', { reduced: true });
+  swipeProjects.swipe(label(swipeProjects, '.projects-main'), 100);
+  check(swipeProjects.errors.length === 0 && swipeProjects.w.location.pathname.endsWith('/projects.html'),
+    'Rightward swipe on Projects overview is ignored');
+  swipeProjects.swipe(label(swipeProjects, '.projects-main'), -100);
+  check(swipeProjects.errors.some((error) => error.message.includes('navigation')),
+    'Leftward swipe on Projects overview attempts the Who I Am navigation');
+  swipeProjects.errors.length = 0;
+  swipeProjects.close();
+
+  const swipeDetail = page('projects.html', { hash: '#chip', reduced: true });
+  swipeDetail.swipe(label(swipeDetail, '.projects-main'), -100);
+  const nextDetail = swipeDetail.w.location.hash;
+  swipeDetail.swipe(label(swipeDetail, '.projects-main'), 100);
+  check(nextDetail === '#wit' && swipeDetail.w.location.hash === '#chip',
+    'Project detail swipes still navigate in both directions');
+  swipeDetail.close();
+
   const who = page('who-i-am.html');
   who.advance(1900);
   check(who.d.querySelectorAll('.who-keepsake.is-active').length === 1, 'Touch ghost previews one image');
@@ -278,7 +424,7 @@ async function flush(p) { await new Promise((resolve) => setTimeout(resolve, 0))
   who.hide(true); who.advance(10000);
   check(!who.d.querySelector('.who-keepsake.is-active') && who.tasks.size === 0, 'Hidden overview cancels ghost and animation');
   who.hide(false); who.advance(1900);
-  who.click(label(who, '.page-menu a[href="index.html"]'));
+  who.click(label(who, '.page-menu a[href="who-i-am.html"]'));
   check(!who.d.querySelector('.who-keepsake.is-active'), 'Expanded menu suspends ghost');
   who.d.dispatchEvent(new who.w.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
   who.pointer(keepsake, 'pointerdown'); who.pointer(keepsake, 'pointerup'); who.click(keepsake);
@@ -340,6 +486,9 @@ async function flush(p) { await new Promise((resolve) => setTimeout(resolve, 0))
   for (const id of ['chip', 'wit', 'dk', 'cnn', 'connect3']) {
     const direct = page('projects.html', { hash: `#${id}`, reduced: true });
     check(label(direct, '.projects-title').textContent === direct.w.projectConfig.projects.find((p) => p.id === id).title, `Direct ${id} route renders matching content`);
+    check(!direct.d.body.classList.contains('portrait-overview-page') &&
+      direct.w.getComputedStyle(label(direct, '.site-nav--portrait')).display === 'none',
+    `Direct ${id} route also hides the mobile site navigation`);
     direct.click(label(direct, '.projects-back'));
     check(!direct.w.location.hash && label(direct, '.projects-heading').hidden, 'Direct-route All projects works');
     direct.close();
@@ -358,10 +507,43 @@ async function flush(p) { await new Promise((resolve) => setTimeout(resolve, 0))
   check(!info.style.getPropertyValue('--project-transition-ink'), 'Settled detail restores its original warm text palette');
   flip.click(label(flip, '.projects-back'));
   await flush(flip);
+  await flush(flip);
   check(!label(flip, '.projects-experience').classList.contains('is-copy-fading') &&
     flip.w.getComputedStyle(flipCopy).backgroundColor === 'rgba(0, 0, 0, 0)',
   'Mobile return keeps the copy background transparent without desktop fade styling');
   flip.close();
+
+  const alignment = page('projects.html');
+  const alignmentStage = label(alignment, '.projects-stage');
+  Object.defineProperty(alignmentStage, 'clientHeight', {
+    get: () => alignment.d.body.classList.contains('portrait-overview-page') ? 614 : 710,
+  });
+  alignmentStage.getBoundingClientRect = () => {
+    const overview = alignment.d.body.classList.contains('portrait-overview-page');
+    if (overview && alignment.w.scrollY > 0) alignment.w.scrollY = 0; // A short overview clamps detail scroll.
+    const left = 20, top = (overview ? 132 : 20) - alignment.w.scrollY;
+    const width = alignmentStage.clientWidth, height = alignmentStage.clientHeight;
+    return { x: left, y: top, top, left, right: left + width, bottom: top + height, width, height };
+  };
+  alignment.click(label(alignment, '[data-project="chip"]'));
+  await flush(alignment);
+  alignment.advance(1500);
+  alignment.w.scrollY = 300;
+  alignment.click(label(alignment, '.projects-back'));
+  await flush(alignment);
+  await flush(alignment);
+  const projectedSource = label(alignment, '.projects-figure');
+  const morph = label(alignment, '.projects-morph');
+  const projectedTop = alignmentStage.getBoundingClientRect().top + parseFloat(projectedSource.style.top);
+  check(alignment.w.scrollY === 300 && Math.abs(projectedTop - 132) < 1 &&
+    parseFloat(morph.style.top) + parseFloat(morph.style.height) >=
+      parseFloat(projectedSource.style.top) + parseFloat(projectedSource.style.height),
+  'Mobile return morph reaches the centred overview portrait without clipping');
+  alignment.advance(1500);
+  const settledTop = alignmentStage.getBoundingClientRect().top + parseFloat(projectedSource.style.top);
+  check(Math.abs(settledTop - projectedTop) < 1,
+    'Mobile overview portrait stays in place when the return morph settles');
+  alignment.close();
 
   const animated = page('projects.html');
   animated.click(label(animated, '[data-project="chip"]'));
@@ -414,6 +596,8 @@ async function flush(p) { await new Promise((resolve) => setTimeout(resolve, 0))
   check(label(desktopProjects, '.overview-navigation').hidden, 'Desktop overview hints remain hidden');
   desktopProjects.click(label(desktopProjects, '[data-project="chip"]'));
   await flush(desktopProjects);
+  check(desktopProjects.w.getComputedStyle(label(desktopProjects, '.site-nav--portrait')).display === 'flex',
+    'Desktop project detail navigation remains visible');
   check(!label(desktopProjects, '.projects-heading').classList.contains('is-title-visible'), 'Desktop title waits for original morph phase');
   check(label(desktopProjects, '.projects-copy').inert, 'Desktop copy retains original reveal phase');
   check(label(desktopProjects, '.project-pagination').hidden, 'Desktop has no added pagination');

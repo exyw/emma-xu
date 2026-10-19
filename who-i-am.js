@@ -235,7 +235,8 @@
       ghost.quiet();
       renderActive();
     });
-    window.addHorizontalSwipe(main, () => {
+    window.addHorizontalSwipe(main, (direction) => {
+      if (direction !== -1) return; // Swipe right to reveal Projects on the left.
       selectedId = null;
       ghost.quiet();
       location.href = 'projects.html';

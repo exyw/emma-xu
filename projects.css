@@ -304,6 +304,12 @@
     padding: 12px max(20px, env(safe-area-inset-right)) calc(72px + env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left));
   }
   .projects-experience.is-detail { padding-bottom: calc(80px + env(safe-area-inset-bottom)); }
+  html:not(.projects-initial-detail) .projects-page.portrait-overview-page .projects-experience {
+    min-height: 100svh;
+    justify-content: center;
+    padding: 0 max(20px, env(safe-area-inset-right)) 0 max(20px, env(safe-area-inset-left));
+  }
+  html:not(.projects-initial-detail) .projects-page.portrait-overview-page .projects-stage { margin-top: 0; }
   .projects-stage {
     width: min(100%, 420px);
     height: calc(clamp(184px, calc((100svh - 240px) * 276 / 900), 276px) * 850 / 276 * 1.016);

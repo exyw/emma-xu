@@ -19,6 +19,10 @@
   const nextButton = document.querySelector('.project-next');
   const position = document.querySelector('.project-position');
   const mobileNav = window.siteLayout;
+  function setPortraitOverview(value) {
+    document.body.classList.toggle('portrait-overview-page', value);
+    nav.dispatchEvent(new Event('site-nav-layout'));
+  }
   const compactMotion = window.matchMedia("(max-width: 640px), (max-height: 740px)");
   const svgNS = "http://www.w3.org/2000/svg";
   const { crop, projects } = window.projectConfig;
@@ -174,6 +178,7 @@
   let requestVersion = 0;
   let geometry = null;
   let buffers = null;
+  let closingToOverview = false;
   let navRelease = 0;
   let navFrameId = null;
   let overviewScrollY = 0;
@@ -419,6 +424,43 @@
     return { width, height, sourceRect, targetRect };
   }
 
+  function overviewSourceRect() {
+    // Measure the settled overview without painting an intermediate frame.
+    // Its centred stage differs from the detail layout used during the morph.
+    const current = stage.getBoundingClientRect();
+    const detailScrollY = window.scrollY;
+    const copyWasHidden = copy.hidden;
+    const paginationWasHidden = pagination.hidden;
+    const stageMinHeight = stage.style.getPropertyValue('--project-stage-min-height');
+    const wasDetail = experience.classList.contains('is-detail');
+    const wasOverview = document.body.classList.contains('portrait-overview-page');
+    let overview;
+    let measuredScrollY;
+    try {
+      copy.hidden = true;
+      pagination.hidden = true;
+      experience.classList.remove('is-detail');
+      document.body.classList.add('portrait-overview-page');
+      stage.style.removeProperty('--project-stage-min-height');
+      overview = stage.getBoundingClientRect();
+      measuredScrollY = window.scrollY;
+    } finally {
+      if (stageMinHeight) stage.style.setProperty('--project-stage-min-height', stageMinHeight);
+      document.body.classList.toggle('portrait-overview-page', wasOverview);
+      experience.classList.toggle('is-detail', wasDetail);
+      copy.hidden = copyWasHidden;
+      pagination.hidden = paginationWasHidden;
+      if (window.scrollY !== detailScrollY) window.scrollTo(0, detailScrollY);
+    }
+    const figureWidth = overview.height * crop.width / crop.height * sourceWidthScale;
+    const overviewScrollTarget = hasOverviewScroll ? overviewScrollY : 0;
+    return {
+      x: overview.left - current.left + (overview.width - figureWidth) / 2,
+      y: overview.top + measuredScrollY - overviewScrollTarget - current.top,
+      width: figureWidth, height: overview.height,
+    };
+  }
+
   function updateGeometry() {
     // Let wrapped/enlarged headings grow the stage instead of clipping the morph.
     if (active && mobileNav.matches) {
@@ -429,6 +471,28 @@
       stage.style.removeProperty('--project-stage-min-height');
     }
     geometry = rects();
+    geometry.stageWidth = geometry.width;
+    geometry.stageHeight = geometry.height;
+    geometry.canvasLeft = 0;
+    geometry.canvasTop = 0;
+    if (closingToOverview && mobileNav.matches) {
+      geometry.sourceRect = overviewSourceRect();
+      const { sourceRect, targetRect } = geometry;
+      geometry.canvasLeft = Math.min(0, sourceRect.x, targetRect?.x ?? 0);
+      geometry.canvasTop = Math.min(0, sourceRect.y, targetRect?.y ?? 0);
+      geometry.width = Math.max(geometry.stageWidth, sourceRect.x + sourceRect.width,
+        (targetRect?.x ?? 0) + (targetRect?.width ?? 0)) - geometry.canvasLeft;
+      geometry.height = Math.max(geometry.stageHeight, sourceRect.y + sourceRect.height,
+        (targetRect?.y ?? 0) + (targetRect?.height ?? 0)) - geometry.canvasTop;
+      Object.assign(morphCanvas.style, {
+        left: `${geometry.canvasLeft}px`, top: `${geometry.canvasTop}px`,
+        right: 'auto', bottom: 'auto',
+        width: `${geometry.width}px`, height: `${geometry.height}px`,
+      });
+    } else {
+      ['left', 'top', 'right', 'bottom', 'width', 'height'].forEach((property) =>
+        morphCanvas.style.removeProperty(property));
+    }
     const { sourceRect, targetRect } = geometry;
     Object.assign(source.style, {
       left: `${sourceRect.x}px`, top: `${sourceRect.y}px`,
@@ -517,6 +581,10 @@
     stage.setAttribute("aria-label", `${active.title} ASCII artwork`);
     stage.removeAttribute("aria-busy");
     experience.classList.add("is-detail");
+    if (closingToOverview) {
+      closingToOverview = false;
+      updateGeometry();
+    }
     positionDetailContent();
     if (!focus) pendingHeadingFocus = null;
     updateTransitionView();
@@ -541,6 +609,8 @@
     stage.setAttribute("aria-label", "Select a project from the ASCII portrait");
     stage.removeAttribute("aria-busy");
     experience.classList.remove("is-detail");
+    setPortraitOverview(true);
+    closingToOverview = false;
     experience.style.removeProperty("--project-heading-top");
     experience.style.removeProperty("--project-copy-offset");
     experience.style.removeProperty("--project-divider-offset");
@@ -586,8 +656,8 @@
   }
 
   async function prepareBuffers(project) {
-    const expectedWidth = Math.round(stage.clientWidth);
-    const expectedHeight = Math.round(stage.clientHeight);
+    const expectedWidth = Math.round(geometry.width);
+    const expectedHeight = Math.round(geometry.height);
     if (buffers?.projectId === project.id && buffers.width === expectedWidth && buffers.height === expectedHeight) return buffers;
     const [silhouette, ...art] = await Promise.all([
       loadImage(asciiUrl("Silhouette ASCII.svg")),
@@ -595,25 +665,26 @@
       loadImage(asciiUrl(project.large)),
     ]);
     if (active?.id !== project.id) return null;
-    if (!geometry || geometry.width !== stage.clientWidth || geometry.height !== stage.clientHeight) updateGeometry();
-    const { width, height, sourceRect, targetRect } = geometry;
+    if (!geometry || geometry.stageWidth !== stage.clientWidth || geometry.stageHeight !== stage.clientHeight) updateGeometry();
+    const { width, height, sourceRect, targetRect, canvasLeft, canvasTop } = geometry;
     const sourceCanvas = canvasOf(width, height);
     const sourceContext = sourceCanvas.getContext("2d");
     sourceContext.drawImage(
       silhouette, crop.x, crop.y, crop.width, crop.height,
-      sourceRect.x, sourceRect.y, sourceRect.width, sourceRect.height,
+      sourceRect.x - canvasLeft, sourceRect.y - canvasTop, sourceRect.width, sourceRect.height,
     );
     projects.forEach((item, index) => {
       const slot = item.slot;
-      const x = sourceRect.x + (slot.x - crop.x) / crop.width * sourceRect.width;
-      const y = sourceRect.y + (slot.y - crop.y) / crop.height * sourceRect.height;
+      const x = sourceRect.x - canvasLeft + (slot.x - crop.x) / crop.width * sourceRect.width;
+      const y = sourceRect.y - canvasTop + (slot.y - crop.y) / crop.height * sourceRect.height;
       const width = slot.width / crop.width * sourceRect.width;
       const height = slot.height / crop.height * sourceRect.height;
       sourceContext.drawImage(art[index], x, y, width, height);
     });
     const targetCanvas = canvasOf(width, height);
     targetCanvas.getContext("2d").drawImage(
-      art[art.length - 1], targetRect.x, targetRect.y, targetRect.width, targetRect.height,
+      art[art.length - 1], targetRect.x - canvasLeft, targetRect.y - canvasTop,
+      targetRect.width, targetRect.height,
     );
     buffers = {
       projectId: project.id, width: Math.round(width), height: Math.round(height),
@@ -640,7 +711,7 @@
   function drawMorph(nearDelta, farDelta) {
     if (!active || !buffers || !points) return;
     const context = morphCanvas.getContext("2d");
-    const { width, height, sourceRect, targetRect } = geometry;
+    const { width, height, sourceRect, targetRect, canvasLeft, canvasTop } = geometry;
     context.clearRect(0, 0, width, height);
     const amount = ease(progress);
     const start = points.source;
@@ -663,10 +734,10 @@
       for (let index = 0; index < count; index += 1) {
         const a = start[Math.floor(index * start.length / count)];
         const b = end[Math.floor(index * end.length / count)];
-        const sx = sourceRect.x + a[0] / 10000 * sourceRect.width;
-        const sy = sourceRect.y + a[1] / 10000 * sourceRect.height;
-        const tx = targetRect.x + b[0] / 10000 * targetRect.width;
-        const ty = targetRect.y + b[1] / 10000 * targetRect.height;
+        const sx = sourceRect.x - canvasLeft + a[0] / 10000 * sourceRect.width;
+        const sy = sourceRect.y - canvasTop + a[1] / 10000 * sourceRect.height;
+        const tx = targetRect.x - canvasLeft + b[0] / 10000 * targetRect.width;
+        const ty = targetRect.y - canvasTop + b[1] / 10000 * targetRect.height;
         const x = sx + (tx - sx) * amount + pass.offset;
         const y = sy + (ty - sy) * amount;
         const sampleX = fromArt ? sx : tx;
@@ -687,10 +758,10 @@
       for (let index = 0; index < count; index += 1) {
         const a = start[Math.floor(index * start.length / count)];
         const b = end[Math.floor(index * end.length / count)];
-        const sx = sourceRect.x + a[0] / 10000 * sourceRect.width;
-        const sy = sourceRect.y + a[1] / 10000 * sourceRect.height;
-        const tx = targetRect.x + b[0] / 10000 * targetRect.width;
-        const ty = targetRect.y + b[1] / 10000 * targetRect.height;
+        const sx = sourceRect.x - canvasLeft + a[0] / 10000 * sourceRect.width;
+        const sy = sourceRect.y - canvasTop + a[1] / 10000 * sourceRect.height;
+        const tx = targetRect.x - canvasLeft + b[0] / 10000 * targetRect.width;
+        const ty = targetRect.y - canvasTop + b[1] / 10000 * targetRect.height;
         const x = sx + (tx - sx) * amount;
         const y = sy + (ty - sy) * amount;
         context.drawImage(texture, (fromArt ? sx : tx) - size / 2,
@@ -807,6 +878,7 @@
     const projectChanged = active?.id !== project.id;
     active = project;
     heading.hidden = false;
+    setPortraitOverview(false);
     renderCopy(project);
     experience.classList.add("is-detail");
     if (projectChanged) showTarget(project);
@@ -863,6 +935,10 @@
       settleOverview(project.id);
       source.style.pointerEvents = "";
       return;
+    }
+    if (mobileNav.matches) {
+      closingToOverview = true;
+      updateGeometry();
     }
     if (!buffers || buffers.projectId !== project.id) {
       try { await prepareBuffers(project); }
@@ -925,8 +1001,9 @@
   previousButton.addEventListener('click', () => adjacentProject(-1));
   nextButton.addEventListener('click', () => adjacentProject(1));
   window.addHorizontalSwipe(document.querySelector('.projects-main'), (direction) => {
-    if (state === 'overview') location.href = 'who-i-am.html';
-    else if (state !== 'closing') adjacentProject(direction);
+    if (state === 'overview') {
+      if (direction === 1) location.href = 'who-i-am.html'; // Swipe left to reveal Who I am on the right.
+    } else if (state !== 'closing') adjacentProject(direction);
   });
 
   function returnToProjects() {
@@ -1012,6 +1089,7 @@
   if (initialProject) {
     active = initialProject;
     heading.hidden = false;
+    setPortraitOverview(false);
     renderCopy(initialProject);
     experience.classList.add("is-detail");
     showTarget(initialProject);
