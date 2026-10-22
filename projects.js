@@ -18,6 +18,8 @@
   const previousButton = document.querySelector('.project-previous');
   const nextButton = document.querySelector('.project-next');
   const position = document.querySelector('.project-position');
+  const announcement = document.querySelector('.project-announcement');
+  const main = document.querySelector('.projects-main');
   const mobileNav = window.siteLayout;
   function setPortraitOverview(value) {
     document.body.classList.toggle('portrait-overview-page', value);
@@ -112,7 +114,7 @@
   function makeTargetArt(project) {
     const { width, height } = project.art;
     const wrapper = document.createElement("div");
-    wrapper.className = "projects-target";
+    wrapper.className = `projects-target${project.id === 'cnn' ? ' projects-target--cnn' : ''}`;
     wrapper.setAttribute("aria-hidden", "true");
     const art = svg("svg", {
       class: "projects-target__art", viewBox: `0 0 ${width} ${height}`,
@@ -270,6 +272,8 @@
     copy.classList.toggle("is-content-visible", copyVisible);
     copy.inert = !copyVisible;
     copy.setAttribute("aria-hidden", String(!copyVisible));
+    pagination.inert = pagination.hidden || (!mobileNav.matches && !copyVisible);
+    pagination.setAttribute("aria-hidden", String(pagination.inert));
     if (titleVisible && pendingHeadingFocus &&
         pendingHeadingFocus.version === requestVersion &&
         pendingHeadingFocus.projectId === active?.id &&
@@ -294,12 +298,13 @@
   }
 
   function updateNavRelease() {
-    if (!experience.classList.contains("is-detail") || copy.hidden ||
+    const content = copy.hidden ? pagination : copy;
+    if (!experience.classList.contains("is-detail") || content.hidden ||
         !copy.classList.contains("is-content-visible") || mobileNav.matches) {
       resetNavRelease();
       return;
     }
-    const copyTop = copy.getBoundingClientRect().top + window.scrollY;
+    const copyTop = content.getBoundingClientRect().top + window.scrollY;
     // Include the full menu box so its links stay clear when they expand.
     const navBottomAtRest = nav.getBoundingClientRect().bottom + navRelease;
     const overrun = window.scrollY + navBottomAtRest + navCopyGap - copyTop;
@@ -516,6 +521,7 @@
     experience.style.setProperty("--project-copy-offset",
       `${y + height + artGap - stage.clientHeight}px`);
     experience.style.setProperty("--project-divider-offset", `${-artGap / 2}px`);
+    experience.style.setProperty("--project-rule-gap", `${artGap / 2}px`);
   }
 
   function showTarget(project) {
@@ -551,7 +557,7 @@
       copy.append(element);
     }
     copy.hidden = !mobileNav.matches && !copy.childElementCount;
-    pagination.hidden = !mobileNav.matches;
+    pagination.hidden = false;
     overviewNavigation.hidden = true;
     overviewTitle.hidden = true;
     const index = projects.indexOf(project);
@@ -593,6 +599,7 @@
 
   function settleOverview(focusId = null) {
     pendingHeadingFocus = null;
+    announcement.textContent = "";
     state = "overview";
     progress = 0;
     source.hidden = false;
@@ -614,6 +621,7 @@
     experience.style.removeProperty("--project-heading-top");
     experience.style.removeProperty("--project-copy-offset");
     experience.style.removeProperty("--project-divider-offset");
+    experience.style.removeProperty("--project-rule-gap");
     resetNavRelease();
     active = null;
     hoveredId = null;
@@ -886,7 +894,7 @@
     focusedId = null;
     showPreview();
     positionDetailContent();
-    if (mobileNav.matches || previousState === 'overview') window.scrollTo(0, restoreY);
+    if (mobileNav.matches || previousState === 'overview' || projectChanged) window.scrollTo(0, restoreY);
     if (mobileNav.matches) requestAnimationFrame(() => { if (version === requestVersion) window.scrollTo(0, restoreY); });
     stage.setAttribute("aria-busy", "true");
     // A changed URL can request another detail while one is already visible.
@@ -974,7 +982,7 @@
     if (!project) {
       closeProject();
     } else if (active?.id !== project.id || state === "closing") {
-      openProject(project, !mobileNav.matches, mobileNav.matches ? history.state?.readingY || 0 : 0);
+      openProject(project, !mobileNav.matches, history.state?.readingY || 0);
     }
   }
 
@@ -982,39 +990,31 @@
     history.replaceState({ ...history.state, readingY: window.scrollY }, '', location.href);
   }
 
-  function navigateProject(project) {
-    if (!mobileNav.matches) {
-      history.pushState({ projectsPage: true }, '', `#${project.id}`);
-      openProject(project, true);
-      return;
-    }
+  function navigateProject(project, moveFocus = true) {
     saveReadingPosition();
     const depth = state === 'overview' ? 1 : history.state?.overviewDepth ? history.state.overviewDepth + 1 : 0;
     history.pushState({ projectsPage: true, overviewDepth: depth, readingY: 0 }, '', `#${project.id}`);
-    openProject(project, true);
+    openProject(project, moveFocus);
   }
 
   function adjacentProject(direction) {
     if (!active) return;
-    navigateProject(projects[mod(projects.indexOf(active) + direction, projects.length)]);
+    const project = projects[mod(projects.indexOf(active) + direction, projects.length)];
+    if (!mobileNav.matches && document.activeElement === title) title.blur();
+    navigateProject(project, mobileNav.matches);
+    if (!mobileNav.matches) {
+      announcement.textContent = `Project ${projects.indexOf(project) + 1} of ${projects.length}: ${project.title}`;
+    }
   }
   previousButton.addEventListener('click', () => adjacentProject(-1));
   nextButton.addEventListener('click', () => adjacentProject(1));
-  window.addHorizontalSwipe(document.querySelector('.projects-main'), (direction) => {
+  window.addHorizontalSwipe(main, (direction) => {
     if (state === 'overview') {
       if (direction === 1) location.href = 'who-i-am.html'; // Swipe left to reveal Who I am on the right.
     } else if (state !== 'closing') adjacentProject(direction);
   });
 
   function returnToProjects() {
-    if (!mobileNav.matches && !history.state?.overviewDepth) {
-      if (history.state?.projectsPage) history.back();
-      else {
-        history.replaceState(null, '', location.pathname + location.search);
-        closeProject();
-      }
-      return;
-    }
     returnFocusId = active?.id;
     saveReadingPosition();
     if (history.state?.overviewDepth) {
@@ -1033,7 +1033,18 @@
     if (state !== "closing") returnToProjects();
   }));
   document.addEventListener("keydown", (event) => {
-    if (!event.defaultPrevented && event.key === "Escape" && state !== "overview") back.click();
+    if (event.defaultPrevented) return;
+    if (event.key === "Escape" && state !== "overview") {
+      back.click();
+      return;
+    }
+    if (mobileNav.matches || !active || state === 'closing' || event.repeat || event.isComposing ||
+        event.ctrlKey || event.metaKey || event.altKey || event.shiftKey ||
+        getSelection()?.toString() ||
+        (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') ||
+        event.target.closest?.('a, input, textarea, select, [contenteditable]')) return;
+    event.preventDefault();
+    adjacentProject(event.key === 'ArrowRight' ? 1 : -1);
   });
   window.addEventListener("popstate", syncFromLocation);
   window.addEventListener("hashchange", syncFromLocation);
@@ -1043,7 +1054,7 @@
       if (mobileNav.matches) button.title = project.title;
       else button.removeAttribute('title');
     });
-    pagination.hidden = !mobileNav.matches || !active;
+    pagination.hidden = !active;
     overviewNavigation.hidden = !mobileNav.matches || Boolean(active);
     if (active) {
       copy.hidden = !mobileNav.matches && !copy.childElementCount;

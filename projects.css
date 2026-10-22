@@ -31,6 +31,9 @@
   --project-focus: #f5bd68;
 }
 
+.projects-page.is-inverted { --project-focus: #d2c5b0; }
+.projects-initial-detail .projects-page { --project-focus: #d2c5b0; }
+
 .projects-initial-detail .projects-page { --detail-fade: 1; }
 
 .projects-page .site-nav a { color: var(--project-transition-ink, inherit); }
@@ -88,6 +91,11 @@
   height: 100%;
   overflow: visible;
   pointer-events: none;
+}
+
+/* The classifier's thin ASCII strokes need more visible coverage at detail scale. */
+.projects-target--cnn .projects-target__art {
+  filter: drop-shadow(0 0 1.5px rgb(248 240 227 / 90%));
 }
 
 .project-choice {
@@ -278,6 +286,7 @@
 }
 
 .projects-copy p { margin: 0 0 1em; }
+.projects-copy p:last-child { margin-bottom: 0; }
 .projects-copy a {
   color: var(--project-link);
   display: inline-block;
@@ -289,12 +298,58 @@
 }
 .projects-copy a:focus-visible { outline: 2px solid var(--project-focus); outline-offset: 4px; }
 
+.project-pagination {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  box-sizing: border-box;
+  width: min(540px, 100%);
+  margin-top: var(--project-rule-gap, 14px);
+  padding: 16px 0;
+  border-top: 1px solid #716a60;
+  color: var(--project-transition-ink, var(--project-ink));
+  font-size: 13px;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 180ms ease, visibility 0s linear 180ms;
+}
+
+.projects-copy.is-content-visible + .project-pagination {
+  opacity: 1;
+  visibility: visible;
+  transition-delay: 0s;
+}
+
+.project-pagination[hidden] { display: none; }
+.projects-experience.is-detail .projects-copy[hidden] + .project-pagination {
+  margin-top: var(--project-copy-offset, -136px);
+}
+
+.project-pagination button {
+  min-height: 44px;
+  padding: 8px 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  overflow-wrap: anywhere;
+}
+
+.project-pagination .project-next { text-align: right; }
+.project-pagination button:focus-visible { outline: 2px solid var(--project-focus); outline-offset: 4px; }
+
 @media (prefers-reduced-motion: reduce) {
   .projects-stage__motion { will-change: auto; }
   .project-choice__original { transition: none; }
   .projects-heading > div,
   .projects-copy,
-  .projects-copy > p { transition: none; }
+  .projects-copy > p,
+  .project-pagination { transition: none; }
 }
 
 @media (max-width: 640px), (hover: none) and (pointer: coarse) {
@@ -331,16 +386,10 @@
     width: max(100%, 44px); height: max(100%, 44px); transform: translate(-50%, -50%);
   }
   .project-pagination {
-    display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
-    align-items: center; gap: 10px; width: min(420px, 100%); margin-top: 24px;
-    padding: 16px 0; border-top: 1px solid #716a60; color: #f8f0e3; font-size: 13px;
+    width: min(420px, 100%);
+    opacity: 1;
+    visibility: visible;
   }
-  .project-pagination button {
-    min-height: 44px; padding: 8px 0; border: 0; background: transparent;
-    color: inherit; font: inherit; text-align: left; cursor: pointer;
-    text-decoration: underline; text-underline-offset: 3px; overflow-wrap: anywhere;
-  }
-  .project-pagination .project-next { text-align: right; }
   .projects-copy, .projects-copy p { color: var(--project-transition-ink, var(--project-body)); }
   .projects-copy a { color: var(--project-transition-ink, var(--project-link)); }
   .projects-meta { color: var(--project-transition-ink, var(--project-meta)); }

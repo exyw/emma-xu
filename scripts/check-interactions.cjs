@@ -102,8 +102,16 @@ function page(file, { reduced = false, width = 390, height = 844, hash = '', sav
     pointer(target, 'pointermove', { clientX: 180 + dx, clientY: 300 + dy });
     pointer(target, 'pointerup', { clientX: 180 + dx, clientY: 300 + dy });
   }
+  function wheel(target, deltaX, deltaY = 0, options = {}) {
+    const event = new w.WheelEvent('wheel', {
+      bubbles: true, cancelable: true, clientX: 180, clientY: 300,
+      deltaX, deltaY, ...options,
+    });
+    target.dispatchEvent(event);
+    return event;
+  }
   function hide(value) { hidden = value; w.document.dispatchEvent(new w.Event('visibilitychange')); }
-  return { w, d: w.document, advance, pointer, click, swipe, hide, media, observers, tasks, errors, close: () => { assert.equal(errors.length, 0, errors.map((e) => e.message).join('\n')); dom.window.close(); } };
+  return { w, d: w.document, advance, pointer, click, swipe, wheel, hide, media, observers, tasks, errors, close: () => { assert.equal(errors.length, 0, errors.map((e) => e.message).join('\n')); dom.window.close(); } };
 }
 const label = (p, selector) => p.d.querySelector(selector);
 async function flush(p) { await new Promise((resolve) => setTimeout(resolve, 0)); await new Promise((resolve) => setTimeout(resolve, 0)); p.advance(32); }
@@ -118,7 +126,8 @@ async function flush(p) { await new Promise((resolve) => setTimeout(resolve, 0))
     const dom = new JSDOM('<!doctype html><style></style>');
     dom.window.document.querySelector('style').textContent = css;
     const rules = [...dom.window.document.styleSheets[0].cssRules].filter((rule) => rule.type === 1);
-    const result = new Map(rules.map((rule) => [rule.selectorText, rule.style.cssText.replace(/\s+/g, ' ').trim()]));
+    const result = new Map(rules.map((rule) => [rule.selectorText.replace(/\s+/g, ' ').trim(),
+      rule.style.cssText.replace(/\s+/g, ' ').trim()]));
     dom.window.close();
     return result;
   }
@@ -605,13 +614,18 @@ async function flush(p) { await new Promise((resolve) => setTimeout(resolve, 0))
     'Desktop project detail navigation remains visible');
   check(!label(desktopProjects, '.projects-heading').classList.contains('is-title-visible'), 'Desktop title waits for original morph phase');
   check(label(desktopProjects, '.projects-copy').inert, 'Desktop copy retains original reveal phase');
-  check(label(desktopProjects, '.project-pagination').hidden, 'Desktop has no added pagination');
+  check(!label(desktopProjects, '.project-pagination').hidden &&
+    label(desktopProjects, '.project-pagination').inert,
+  'Desktop project controls wait for the detail copy reveal');
   check(desktopProjects.w.getComputedStyle(label(desktopProjects, '.projects-back')).paddingTop === '0px', 'Desktop back-button spacing restored');
   desktopProjects.advance(680);
   check(label(desktopProjects, '.projects-heading').classList.contains('is-title-visible'), 'Desktop title reveals in latter half of morph');
   check(label(desktopProjects, '.projects-copy').inert, 'Desktop copy follows title in morph');
   desktopProjects.advance(650);
   check(!label(desktopProjects, '.projects-copy').inert, 'Desktop settled project copy usable');
+  check(!label(desktopProjects, '.project-pagination').inert &&
+    desktopProjects.w.getComputedStyle(label(desktopProjects, '.project-pagination')).visibility === 'visible',
+  'Desktop project controls appear and become usable with the copy');
   desktopProjects.click(label(desktopProjects, '.projects-back'));
   await flush(desktopProjects);
   const closingCopy = label(desktopProjects, '.projects-copy');
@@ -623,8 +637,68 @@ async function flush(p) { await new Promise((resolve) => setTimeout(resolve, 0))
   check(!desktopProjects.w.location.hash && label(desktopProjects, '.projects-heading').hidden, 'Desktop original Back return preserved');
   desktopProjects.close();
   const desktopDk = page('projects.html', { width: 1512, height: 982, hash: '#dk', reduced: true });
-  check(label(desktopDk, '.projects-copy').hidden && label(desktopDk, '.project-pagination').hidden, 'Desktop project without copy keeps original layout');
+  check(label(desktopDk, '.projects-copy').hidden && !label(desktopDk, '.project-pagination').hidden &&
+    label(desktopDk, '.project-pagination').textContent.includes('3 / 5'),
+  'Desktop project without copy still shows positioned project controls');
   desktopDk.close();
+
+  const desktopGesture = page('projects.html', { width: 1512, height: 982, reduced: true });
+  const desktopMain = label(desktopGesture, '.projects-main');
+  desktopGesture.wheel(desktopMain, 100);
+  desktopGesture.d.dispatchEvent(new desktopGesture.w.KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
+  check(!desktopGesture.w.location.hash, 'Desktop overview ignores detail navigation inputs');
+  desktopGesture.click(label(desktopGesture, '[data-project="chip"]'));
+  check(desktopGesture.d.activeElement === label(desktopGesture, '.projects-title'),
+    'Opening a desktop project still focuses its heading');
+  check(desktopGesture.w.getComputedStyle(desktopGesture.d.body).getPropertyValue('--project-focus').trim() === '#d2c5b0',
+    'Detail focus outlines use the softer sandstone colour');
+  desktopGesture.d.dispatchEvent(new desktopGesture.w.KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true }));
+  check(desktopGesture.w.location.hash === '#wit' &&
+    desktopGesture.d.activeElement !== label(desktopGesture, '.projects-title'),
+  'Arrow navigation removes the old title focus instead of outlining the new title');
+  desktopGesture.d.dispatchEvent(new desktopGesture.w.KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true, cancelable: true }));
+  check(desktopGesture.w.location.hash === '#chip', 'Reverse arrow returns to the starting detail');
+  const horizontalWheel = desktopGesture.wheel(desktopMain, 140);
+  desktopGesture.wheel(desktopMain, -140);
+  check(desktopGesture.w.location.hash === '#chip' && !horizontalWheel.defaultPrevented,
+    'Desktop horizontal trackpad scrolling leaves project navigation and browser gestures alone');
+  desktopGesture.d.dispatchEvent(new desktopGesture.w.KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true }));
+  check(desktopGesture.w.location.hash === '#wit' &&
+    desktopGesture.d.activeElement !== label(desktopGesture, '.projects-title') &&
+    label(desktopGesture, '.project-announcement').textContent.includes('WIT'),
+  'Right arrow opens and announces the next desktop detail without focusing its heading');
+  const desktopContentLink = label(desktopGesture, '.projects-copy a');
+  desktopContentLink.focus();
+  desktopContentLink.dispatchEvent(new desktopGesture.w.KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true }));
+  check(desktopGesture.w.location.hash === '#wit', 'Desktop arrow keys leave focused content links alone');
+  desktopGesture.d.dispatchEvent(new desktopGesture.w.KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true, cancelable: true }));
+  check(desktopGesture.w.location.hash === '#chip', 'Left arrow opens the previous desktop detail');
+  const desktopNextButton = label(desktopGesture, '.project-next');
+  desktopNextButton.focus();
+  desktopNextButton.dispatchEvent(new desktopGesture.w.KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true }));
+  check(desktopGesture.w.location.hash === '#wit' && desktopGesture.d.activeElement === desktopNextButton,
+    'Arrow navigation works while a pagination button retains focus');
+  desktopNextButton.dispatchEvent(new desktopGesture.w.KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true, cancelable: true }));
+  check(desktopGesture.w.location.hash === '#chip', 'Left arrow also works from a pagination button');
+  desktopGesture.d.dispatchEvent(new desktopGesture.w.KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, repeat: true }));
+  check(desktopGesture.w.location.hash === '#chip', 'Held arrow keys cannot skip through projects');
+  desktopGesture.click(label(desktopGesture, '.project-previous'));
+  check(desktopGesture.w.location.hash === '#connect3' &&
+    label(desktopGesture, '.project-position').textContent === '5 / 5',
+  'Desktop previous control wraps and updates its position');
+  desktopGesture.w.scrollY = 240;
+  desktopGesture.w.dispatchEvent(new desktopGesture.w.Event('scroll'));
+  desktopGesture.advance(32);
+  desktopGesture.w.history.back(); await flush(desktopGesture);
+  desktopGesture.w.history.forward(); await flush(desktopGesture);
+  check(desktopGesture.w.location.hash === '#connect3' && desktopGesture.w.scrollY === 240,
+  'Desktop Back and Forward restore the selected detail and its reading position');
+  desktopGesture.click(label(desktopGesture, '.projects-back'));
+  await flush(desktopGesture);
+  check(!desktopGesture.w.location.hash && label(desktopGesture, '.project-pagination').hidden &&
+    desktopGesture.d.activeElement.dataset.project === 'connect3',
+  'Desktop All projects returns to the overview after several detail changes');
+  desktopGesture.close();
 
   const desktopWho = page('who-i-am.html', { width: 1512, height: 982 });
   const desktopKeepsake = label(desktopWho, '[data-keepsake="drawing-closer"]');
