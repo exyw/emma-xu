@@ -138,7 +138,8 @@ async function flush(p) { await new Promise((resolve) => setTimeout(resolve, 0))
     const before = desktopRules(source);
     const after = desktopRules(fs.readFileSync(path.join(root, cssFile), 'utf8'));
     for (const [selector, declaration] of before) {
-      if (selector === '.mobile-scroll') continue; // Retired mobile prototype has no desktop layout box.
+      if (selector === '.mobile-scroll' || selector === '.project-choice__original' || selector === '.project-choice__ascii' ||
+          selector === '.project-choice.is-preview .project-choice__original') continue; // Retired overview preview.
       assert.equal(after.get(selector), declaration, `Original desktop CSS changed: ${cssFile} ${selector}`);
       cssDeclarations++;
     }
@@ -447,6 +448,45 @@ async function flush(p) { await new Promise((resolve) => setTimeout(resolve, 0))
   const projects = page('projects.html', { reduced: true });
   const choices = [...projects.d.querySelectorAll('.project-choice')];
   check(choices.length === 5 && choices.every((button) => button.getAttribute('aria-label')), 'Five directly activatable named project objects');
+  const configuredProjects = projects.w.projectConfig.projects;
+  const colourBytes = configuredProjects.reduce((total, project) => total +
+    fs.statSync(path.join(root, 'assets/projects/colour', project.colour)).size, 0);
+  const originalBytes = configuredProjects.reduce((total, project) => total +
+    fs.statSync(path.join(root, 'assets/projects/images', project.original)).size, 0);
+  check(colourBytes < originalBytes && choices.every((button) =>
+    button.querySelector('.project-choice__colour')?.src.endsWith(`${button.dataset.project}.webp`) &&
+    button.querySelectorAll('img').length === 1 &&
+    projects.w.getComputedStyle(button.querySelector('img')).filter === 'brightness(0)'),
+  'Overview uses one darkened colourized ASCII image per project');
+  check(projects.w.getComputedStyle(choices[0].querySelector('.project-choice__colour')).transition === 'none',
+    'Reduced motion switches overview colour without a fade');
+  const overviewHover = page('projects.html', { width: 1512, height: 982, reduced: true });
+  const hoverChoice = label(overviewHover, '[data-project="connect3"]');
+  overviewHover.pointer(hoverChoice, 'pointermove', { pointerType: 'mouse', clientX: 180, clientY: 300 });
+  check(hoverChoice.classList.contains('is-preview') &&
+    overviewHover.w.getComputedStyle(hoverChoice.querySelector('.project-choice__colour')).filter === 'brightness(1)',
+  'Desktop hover colours the same ASCII glyph image');
+  overviewHover.pointer(hoverChoice, 'pointermove', { pointerType: 'mouse', clientX: 2000, clientY: 2000 });
+  check(!overviewHover.d.querySelector('.project-choice.is-preview') &&
+    overviewHover.w.getComputedStyle(hoverChoice.querySelector('.project-choice__colour')).filter === 'brightness(0)',
+  'Moving off the portrait darkens the same ASCII glyph image');
+  const failedColour = hoverChoice.querySelector('.project-choice__colour');
+  failedColour.dispatchEvent(new overviewHover.w.Event('error'));
+  hoverChoice.classList.add('is-preview');
+  check(hoverChoice.classList.contains('is-colour-missing') &&
+    failedColour.src.endsWith('Connect3%20small.svg') &&
+    overviewHover.w.getComputedStyle(failedColour).filter === 'brightness(0)',
+  'Missing colour asset falls back to dark supplied ASCII');
+  overviewHover.close();
+  const overviewGhost = page('projects.html');
+  check(overviewGhost.w.getComputedStyle(label(overviewGhost, '.project-choice__colour')).transition.includes('filter 200ms') &&
+    !overviewGhost.d.querySelector('.project-choice__ascii'),
+  'Overview animates the one glyph image colour instead of crossfading duplicate glyphs');
+  overviewGhost.advance(3300);
+  check(overviewGhost.d.querySelectorAll('.project-choice.is-preview').length === 1 &&
+    !overviewGhost.d.querySelector('.project-choice__original'),
+  'Compact ghost previews one colourized ASCII project without a full image');
+  overviewGhost.close();
   projects.click(choices[0]);
   check(projects.w.location.hash === '#chip' && label(projects, '.projects-title').textContent === 'Adventures of Chip', 'Project tap opens matching URL and title');
   check(label(projects, '.projects-title') === projects.d.activeElement, 'Explicit activation focuses heading');

@@ -131,27 +131,17 @@
   pointer-events: none;
 }
 
-.project-choice__ascii {
-  z-index: 1;
+.project-choice__colour {
   inset: 0;
   width: 100%;
   height: 100%;
   object-fit: fill;
+  filter: brightness(0);
+  transition: filter 200ms ease;
 }
 
-.project-choice__original {
-  z-index: 0;
-  top: 50%;
-  left: 50%;
-  width: 160%;
-  height: 160%;
-  object-fit: contain;
-  opacity: 0;
-  transform: translate(-50%, -50%);
-  transition: opacity 200ms ease;
-}
-
-.project-choice.is-preview .project-choice__original { opacity: 1; }
+.project-choice.is-preview .project-choice__colour { filter: brightness(1); }
+.project-choice.is-colour-missing .project-choice__colour { filter: brightness(0); }
 
 .projects-morph {
   display: block;
@@ -345,7 +335,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .projects-stage__motion { will-change: auto; }
-  .project-choice__original { transition: none; }
+  .project-choice__colour { transition: none; }
   .projects-heading > div,
   .projects-copy,
   .projects-copy > p,

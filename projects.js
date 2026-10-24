@@ -54,6 +54,7 @@
   };
   const url = (path) => new URL(path, document.baseURI).href;
   const asciiUrl = (name) => url(`${assets}ascii/${name}`);
+  const colourUrl = (name) => url(`${assets}colour/${name}`);
   const imageUrl = (name) => url(`${assets}images/${name}`);
   const rgb = (value) => `rgb(${value.join(" ")})`;
   const mix = (a, b, fraction) => a.map((channel, index) => Math.round(channel + (b[index] - channel) * fraction));
@@ -340,20 +341,18 @@
     button.style.top = `${((slot.y - crop.y) / crop.height) * 100}%`;
     button.style.width = `${(slot.width / crop.width) * 100}%`;
     button.style.height = `${(slot.height / crop.height) * 100}%`;
-    const original = document.createElement("img");
-    original.className = "project-choice__original";
-    original.src = imageUrl(project.original);
-    original.alt = "";
-    original.setAttribute("aria-hidden", "true");
-    original.draggable = false;
-    if (project.preview) Object.assign(original.style, project.preview);
-    const ascii = document.createElement("img");
-    ascii.className = "project-choice__ascii";
-    ascii.src = asciiUrl(project.small);
-    ascii.alt = "";
-    ascii.setAttribute("aria-hidden", "true");
-    ascii.draggable = false;
-    button.append(original, ascii);
+    const colour = document.createElement("img");
+    colour.className = "project-choice__colour";
+    colour.alt = "";
+    colour.setAttribute("aria-hidden", "true");
+    colour.decoding = "async";
+    colour.draggable = false;
+    colour.addEventListener("error", () => {
+      if (button.classList.contains("is-colour-missing")) return;
+      button.classList.add("is-colour-missing");
+      colour.src = asciiUrl(project.small);
+    });
+    button.append(colour);
     button.addEventListener("focus", () => {
       focusedId = button.matches(":focus-visible") ? project.id : null;
       ghost?.sync();
@@ -604,6 +603,10 @@
     progress = 0;
     source.hidden = false;
     source.inert = false;
+    projects.forEach((project) => {
+      const colour = buttons.get(project.id).querySelector(".project-choice__colour");
+      if (!colour.hasAttribute("src")) colour.src = colourUrl(project.colour);
+    });
     source.style.opacity = "1";
     source.style.pointerEvents = "";
     targetHost.hidden = true;

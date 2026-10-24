@@ -1,13 +1,16 @@
-"""Sample the supplied outlined SVG glyphs for the Projects transition.
+"""Sample overview glyphs and supplied detail SVGs for the Projects transition.
 
-This writes only a small coordinate field. The page still renders the original SVGs.
-Run from the repository root when the artwork or overview slots change.
+This writes only a small coordinate field. The page still renders the original
+detail SVGs. Run from the repository root after regenerating overview colours
+when artwork or overview slots change.
 """
 
 from pathlib import Path
 from xml.etree import ElementTree
 import json
 import re
+
+from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[1]
 ASCII = ROOT / "assets/projects/ascii"
@@ -55,7 +58,18 @@ def source_points():
     crop_x, crop_y, crop_w, crop_h = CROP
     _, silhouette = svg_points(ASCII / "Silhouette ASCII.svg")
     points = [((x - crop_x) / crop_w, (y - crop_y) / crop_h) for x, y in silhouette]
-    for x, y, width, height, filename in SLOTS.values():
+    for project_id, (x, y, width, height, filename) in SLOTS.items():
+        if project_id == "connect3":
+            # The overview image omits the logo's duplicate white/shadow ring.
+            # Sample its visible alpha so the morph starts from the same glyphs.
+            mask = Image.open(ROOT / "assets/projects/colour/connect3.webp").getchannel("A")
+            for py in range(0, mask.height, 4):
+                for px in range(0, mask.width, 4):
+                    if mask.getpixel((px, py)) < 96:
+                        continue
+                    points.append(((x + (px + .5) / mask.width * width - crop_x) / crop_w,
+                                   (y + (py + .5) / mask.height * height - crop_y) / crop_h))
+            continue
         (vx, vy, vw, vh), icon = svg_points(ASCII / filename)
         points.extend(
             ((x + (px - vx) / vw * width - crop_x) / crop_w,
