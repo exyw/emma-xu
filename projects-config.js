@@ -70,7 +70,7 @@ window.projectConfig = {
       "paragraphs": [
         [
           { "text": "Connect3", "homepage": true },
-          " is a student project - AI based platform that connects students to other students, clubs and events on campus. I joined as an AI developer and worked across various LLM based features, such as the RAG workflow to improve university related responses via better chunking, OpenAI embeddings and metadata filtering."
+          " is a student project AI based platform that connects students to other students, clubs and events on campus. I joined as an AI developer and worked across various LLM based features, such as the RAG workflow to improve university related responses via better chunking, OpenAI embeddings and metadata filtering."
         ],
         "Like most student projects, I learnt a lot of the skills required as I had to ship out features quickly and efficiently. I also learnt a lot about how good communication is a vital factor to a succesful project.",
         "The most surprising part of this project was after our first official launch, and I realised how much of an 'AI bubble' I personlly am in, and so this project also sparked my interest in creating AI platforms that cater to the general public, and not just those who are already familiar with AI."
