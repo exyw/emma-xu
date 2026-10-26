@@ -6,7 +6,7 @@
 * { box-sizing: border-box; }
 html { background: var(--contact-background); }
 body {
-  min-height: calc(100vh + var(--scroll-distance, 480vh));
+  min-height: 100vh;
   margin: 0;
   overflow-x: hidden;
   background: var(--contact-background);
@@ -38,7 +38,6 @@ body {
   position: absolute;
   display: flex;
   flex-direction: column;
-  gap: var(--line-gap, 0px);
   top: auto;
   bottom: 59vh;
   left: 50%;
@@ -57,8 +56,6 @@ body {
 }
 .intro-line {
   display: block;
-  transform: scaleY(var(--line-scale, 1));
-  transform-origin: center top;
   white-space: nowrap;
 }
 .contact-page .site-nav {
@@ -98,21 +95,6 @@ body {
   transform: translateY(-50%) translateX(0);
   transition-delay: 0s;
 }
-.scroll-cue {
-  position: absolute;
-  bottom: 8vh;
-  left: 50%;
-  display: grid;
-  justify-items: center;
-  gap: 4px;
-  color: var(--contact-ink);
-  font-size: clamp(10px, 0.75vw, 13px);
-  transform: translateX(-50%);
-}
-.scroll-cue span:last-child {
-  font-size: 18px;
-  line-height: 1;
-}
 @media (prefers-reduced-motion: reduce) {
   .contact-submenu {
     transition: none;
@@ -121,15 +103,14 @@ body {
 
 @media (max-width: 640px), (hover: none) and (pointer: coarse) {
   .contact-page { min-height: 100svh; }
-  .contact-stage, .motion-stopped .contact-stage {
+  .contact-stage {
     position: relative; inset: auto; min-height: 0;
     padding: 0 0 calc(100px + env(safe-area-inset-bottom));
   }
   .contact-page .site-nav { position: relative; top: auto; bottom: auto; transform: none; }
-  .contact-intro, .motion-stopped .contact-intro {
+  .contact-intro {
     position: relative; top: auto; bottom: auto; left: auto; width: min(calc(100% - 48px), 64ch);
     margin: 40px auto 32px; font-size: 15px; line-height: 1.65; text-align: left; transform: none;
   }
   .intro-line { white-space: normal; }
-  .scroll-cue { display: none; }
 }

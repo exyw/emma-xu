@@ -145,6 +145,9 @@ async function flush(p) { await new Promise((resolve) => setTimeout(resolve, 0))
       if (selector === '.mobile-scroll' || selector === '.project-choice__original' || selector === '.project-choice__ascii' ||
           selector === '.project-choice.is-preview .project-choice__original' ||
           selector === '.prelude-title') continue; // Retired overview preview; the masked name is now a button.
+      if (cssFile === 'contact.css' && ['body', '.contact-intro', '.intro-line', '.scroll-cue', '.scroll-cue span:last-child'].includes(selector)) {
+        continue; // Contact's scroll distance, text stretch and cue were removed.
+      }
       assert.equal(after.get(selector), declaration, `Original desktop CSS changed: ${cssFile} ${selector}`);
       cssDeclarations++;
     }
@@ -1143,6 +1146,16 @@ async function flush(p) { await new Promise((resolve) => setTimeout(resolve, 0))
   label(desktopContact, '.contact-submenu a').focus();
   check(label(desktopContact, '.contact-link').getAttribute('aria-expanded') === 'true', 'Desktop Contact submenu remains keyboard accessible');
   check(desktopContact.w.getComputedStyle(label(desktopContact, '.contact-intro')).lineHeight === '1.1', 'Desktop introduction typography restored');
+  check(desktopContact.w.getComputedStyle(desktopContact.d.body).minHeight === '100vh' &&
+    !desktopContact.d.body.hasAttribute('data-stretch-section') &&
+    !label(desktopContact, '.scroll-cue'),
+  'Desktop Contact has no artificial scroll distance or scroll cue');
+  desktopContact.w.scrollY = 500;
+  desktopContact.w.dispatchEvent(new desktopContact.w.Event('scroll'));
+  desktopContact.advance(32);
+  check([...desktopContact.d.querySelectorAll('.intro-row')].every((row) =>
+    !row.style.height && !row.style.getPropertyValue('--line-scale')),
+  'Desktop Contact introduction stays static on scroll');
   desktopContact.close();
 
   const hybrid = page('who-i-am.html', { width: 1512, height: 450, coarse: true, hover: true });

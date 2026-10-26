@@ -1,58 +1,6 @@
 (() => {
-  const textStretch = {
-    scrollDistance: 8, // Viewports of scrolling; lower values finish sooner.
-    topOvershootVh: 20, // How far the top line passes beyond the viewport at the end.
-    topGrowthWeight: 1.65, // Higher lines receive more of the total height increase.
-    bottomGrowthWeight: 0.1,
-    lineGap: 0, // Fixed space between lines, in pixels.
-  };
-  const prefersReducedMotion = { get matches() { return window.siteMotion.stopped; } };
-  const stretchSection = document.querySelector("[data-stretch-section]");
-  const stretchIntro = document.querySelector(".contact-intro");
-  const stretchRows = [...stretchIntro.querySelectorAll(".intro-row")];
-  const stretchWeights = stretchRows.map((row, index) => {
-    const linePosition = stretchRows.length === 1 ? 0 : index / (stretchRows.length - 1);
-    return textStretch.topGrowthWeight +
-      (textStretch.bottomGrowthWeight - textStretch.topGrowthWeight) * linePosition;
-  });
-  const totalStretchWeight = stretchWeights.reduce((sum, weight) => sum + weight, 0);
+  const contactIntro = document.querySelector(".contact-intro");
   const mobileContactMenu = window.siteLayout;
-  let scrollFrame;
-  stretchSection.style.setProperty("--scroll-distance", `${textStretch.scrollDistance * 100}vh`);
-  stretchIntro.style.setProperty("--line-gap", `${textStretch.lineGap}px`);
-
-  function updateStretch() {
-    scrollFrame = undefined;
-    if (prefersReducedMotion.matches || mobileContactMenu.matches) {
-      stretchRows.forEach((row) => {
-        row.style.height = "";
-        row.style.setProperty("--line-scale", 1);
-      });
-      return;
-    }
-    const scrollRange = Math.max(document.documentElement.scrollHeight - window.innerHeight, 1);
-    const progress = Math.min(1, Math.max(0, window.scrollY / scrollRange));
-    const baseLineHeight = parseFloat(getComputedStyle(stretchRows[0].firstElementChild).lineHeight);
-    const baseTextHeight = baseLineHeight * stretchRows.length +
-      textStretch.lineGap * (stretchRows.length - 1);
-    const finalTextHeight = stretchIntro.getBoundingClientRect().bottom +
-      window.innerHeight * textStretch.topOvershootVh / 100;
-    const extraHeight = Math.max(0, finalTextHeight - baseTextHeight);
-    stretchRows.forEach((row, index) => {
-      const lineHeight = baseLineHeight +
-        progress * extraHeight * stretchWeights[index] / totalStretchWeight;
-      const scale = lineHeight / baseLineHeight;
-      row.style.height = `${lineHeight.toFixed(3)}px`;
-      row.style.setProperty("--line-scale", scale.toFixed(4));
-    });
-  }
-  function requestStretchUpdate() {
-    if (!scrollFrame) scrollFrame = window.requestAnimationFrame(updateStretch);
-  }
-  window.addEventListener("scroll", requestStretchUpdate, { passive: true });
-  window.addEventListener("resize", requestStretchUpdate);
-  window.siteMotion.subscribe(requestStretchUpdate);
-  updateStretch();
 
   const contactMenu = document.querySelector('.contact-menu');
   const contactTrigger = document.querySelector('.contact-link');
@@ -69,7 +17,7 @@
     contactMenu.classList.remove('is-open');
     contactLinks.className = 'contact-submenu';
     if (compact) stage.prepend(nav);
-    else stretchIntro.after(nav);
+    else contactIntro.after(nav);
     contactMenu.append(contactLinks);
     contactTrigger.setAttribute('href', '#contact-links');
     contactTrigger.setAttribute('aria-controls', 'contact-links');
@@ -80,7 +28,6 @@
     cv.textContent = compact ? 'Download CV' : 'CV';
     cv.setAttribute('aria-label', cv.textContent);
     contactLinks.querySelectorAll('a').forEach(window.attachTypewriter);
-    requestStretchUpdate();
   }
   contactTrigger.addEventListener('click', (event) => {
     event.preventDefault();
@@ -124,6 +71,5 @@
     }, 0);
   });
   mobileContactMenu.addEventListener('change', configureLayout);
-  window.addEventListener('pagehide', () => { if (scrollFrame) cancelAnimationFrame(scrollFrame); });
   configureLayout();
 })();
