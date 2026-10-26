@@ -66,7 +66,7 @@ window.projectConfig = {
       "homepage": "https://connect3.app/",
       "slot": { "x": 488, "y": 747, "width": 126, "height": 104 },
       "art": { "width": 483, "height": 398, "maxWidth": 440, "maxHeight": 363 },
-      "meta": "Next.js, TypeScript, Supabase, Agentic Systems · 2025-2026",
+      "meta": "Next.js, TypeScript, Supabase, RAG · 2025-2026",
       "paragraphs": [
         [
           { "text": "Connect3", "homepage": true },
