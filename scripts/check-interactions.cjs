@@ -421,7 +421,22 @@ async function flush(p) { await new Promise((resolve) => setTimeout(resolve, 0))
     label(sideProjects, '.overview-navigation').hidden &&
     !projectsSelected.hasAttribute('aria-expanded'),
   'Mobile project details hide the site navigation while retaining title and back controls');
-  sideProjects.click(label(sideProjects, '.projects-back'));
+  const detailContact = label(sideProjects, '.projects-detail-contact');
+  const detailHeader = label(sideProjects, '.projects-detail-header');
+  const detailBack = label(sideProjects, '.projects-detail-back');
+  check(detailContact?.getAttribute('href') === 'contact.html' &&
+    sideProjects.w.getComputedStyle(detailHeader).position === 'sticky' &&
+    sideProjects.w.getComputedStyle(detailHeader).top === '0px' &&
+    sideProjects.w.getComputedStyle(detailHeader).height === '56px' &&
+    sideProjects.w.getComputedStyle(detailHeader).marginTop === '-12px' &&
+    sideProjects.w.getComputedStyle(detailHeader).marginBottom === '-44px' &&
+    sideProjects.w.getComputedStyle(detailHeader).width.includes('max(20px') &&
+    sideProjects.w.getComputedStyle(label(sideProjects, '.projects-heading > .projects-back')).visibility === 'hidden' &&
+    detailBack.typewriter &&
+    sideProjects.w.getComputedStyle(detailContact).display === 'flex' &&
+    sideProjects.w.getComputedStyle(detailContact).minHeight === '44px',
+  'Mobile detail header stays sticky without adding page height');
+  sideProjects.click(detailBack);
   await flush(sideProjects);
   check(sideProjects.d.body.classList.contains('portrait-overview-page') &&
     projectsSelected.getAttribute('aria-expanded') === 'false' &&
@@ -562,6 +577,13 @@ async function flush(p) { await new Promise((resolve) => setTimeout(resolve, 0))
   await flush(projects);
   check(!projects.w.location.hash && !label(projects, '.overview-navigation').hidden, 'All projects returns to overview across multiple details');
   check(projects.d.activeElement.dataset.project === 'chip', 'All projects restores opened object focus');
+  const returnedChoice = projects.d.activeElement;
+  check(returnedChoice.classList.contains('is-return-focus') &&
+    projects.w.getComputedStyle(returnedChoice).outline === 'none',
+  'Restored project focus has no immediate tile outline');
+  returnedChoice.blur();
+  check(!returnedChoice.classList.contains('is-return-focus'),
+    'A later keyboard focus can use the normal tile outline');
   projects.w.history.forward(); await flush(projects);
   check(projects.w.location.hash === '#chip' && !label(projects, '.projects-heading').hidden, 'Browser Forward restores project state');
   projects.w.scrollY = 300;
@@ -1009,6 +1031,8 @@ async function flush(p) { await new Promise((resolve) => setTimeout(resolve, 0))
   await flush(desktopProjects);
   check(desktopProjects.w.getComputedStyle(label(desktopProjects, '.site-nav--portrait')).display === 'flex',
     'Desktop project detail navigation remains visible');
+  check(desktopProjects.w.getComputedStyle(label(desktopProjects, '.projects-detail-header')).display === 'none',
+    'Desktop details keep Contact in the existing site navigation');
   check(!label(desktopProjects, '.projects-heading').classList.contains('is-title-visible'), 'Desktop title waits for original morph phase');
   check(label(desktopProjects, '.projects-copy').inert, 'Desktop copy retains original reveal phase');
   check(!label(desktopProjects, '.project-pagination').hidden &&

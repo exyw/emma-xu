@@ -11,6 +11,8 @@
   const originalToggle = document.querySelector(".projects-original-toggle");
   const copy = document.querySelector(".projects-copy");
   const back = document.querySelector(".projects-back");
+  const mobileBack = document.querySelector(".projects-detail-back");
+  const detailContact = document.querySelector(".projects-detail-contact");
   const nav = document.querySelector(".site-nav--portrait");
   const projectsLinks = nav.querySelectorAll('a[href="projects.html"][aria-current="page"]');
   const overviewNavigation = document.querySelector('.overview-navigation');
@@ -23,10 +25,13 @@
   const main = document.querySelector('.projects-main');
   const mobileNav = window.siteLayout;
   let backWriterCompact = null;
+  const visibleBack = () => mobileNav.matches ? mobileBack : back;
   function syncBackTypewriter() {
-    if (heading.hidden || (back.typewriter && backWriterCompact === mobileNav.matches)) return;
+    const currentBack = visibleBack();
+    if (heading.hidden || (currentBack.typewriter && backWriterCompact === mobileNav.matches)) return;
     back.typewriter?.destroy();
-    window.attachTypewriter(back);
+    mobileBack.typewriter?.destroy();
+    window.attachTypewriter(currentBack);
     backWriterCompact = mobileNav.matches;
   }
   function setPortraitOverview(value) {
@@ -229,7 +234,7 @@
   const imageCache = new Map();
   const transitionDuration = 1.2;
   const originalScrollRestoration = history.scrollRestoration;
-  const themeControls = [...nav.querySelectorAll("a, button"), back];
+  const themeControls = [...nav.querySelectorAll("a, button"), back, mobileBack, detailContact];
   const lightBackground = [
     [0, [237, 228, 211]], [0.5, [210, 197, 176]], [1, [182, 165, 141]],
   ];
@@ -397,6 +402,7 @@
       showPreview();
     });
     button.addEventListener("blur", () => {
+      button.classList.remove("is-return-focus");
       if (focusedId === project.id) focusedId = null;
       ghost?.quiet();
       showPreview();
@@ -455,15 +461,22 @@
       );
       const targetWidth = art.width * scale;
       const targetHeight = art.height * scale;
-      const artGap = mobileNav.matches ? 24 : 28;
       const headingTop = parseFloat(getComputedStyle(experience).paddingTop) || 0;
-      const targetY = Math.max(0, headingTop + heading.offsetHeight + artGap - stage.offsetTop);
+      const targetY = Math.max(0, headingTop + heading.offsetHeight + headerToArtGap() - stage.offsetTop);
       targetRect = {
         x: (width - targetWidth) / 2, y: targetY,
         width: targetWidth, height: targetHeight,
       };
     }
     return { width, height, sourceRect, targetRect };
+  }
+
+  function headerToArtGap() {
+    const ruleGap = mobileNav.matches ? 12 : 14;
+    if (meta.hidden) return ruleGap;
+    const metaHeight = meta.getBoundingClientRect().height;
+    // The divider is centred on the metadata row. Wrapped copy needs room below its last line.
+    return Math.max(metaHeight > 24 ? 8 : 0, ruleGap - metaHeight / 2);
   }
 
   function overviewSourceRect() {
@@ -553,6 +566,7 @@
     if (!experience.classList.contains("is-detail") || !geometry.targetRect) return;
     const { y, height } = geometry.targetRect;
     const artGap = mobileNav.matches ? 24 : 28;
+    const topGap = headerToArtGap();
     const showingWebsite = state === "detail" && layoutOriginalShown && Boolean(active?.homepage) &&
       Boolean(targetArt?.siteFrame?.classList.contains("is-ready"));
     const visibleHeight = showingWebsite
@@ -560,7 +574,7 @@
       : height;
     positionWebsitePreview();
     experience.style.setProperty("--project-heading-top",
-      `${stage.offsetTop + y - heading.offsetHeight - artGap}px`);
+      `${stage.offsetTop + y - heading.offsetHeight - topGap}px`);
     experience.style.setProperty("--project-copy-offset",
       `${y + visibleHeight + artGap - stage.clientHeight}px`);
     experience.style.setProperty("--project-divider-offset", `${-artGap / 2}px`);
@@ -1005,6 +1019,7 @@
     morphCanvas.hidden = true;
     heading.hidden = true;
     back.typewriter?.reset();
+    mobileBack.typewriter?.reset();
     copy.hidden = true;
     pagination.hidden = true;
     overviewNavigation.hidden = !mobileNav.matches;
@@ -1025,7 +1040,12 @@
     updateGeometry();
     showPreview();
     updateTransitionView();
-    if (focusId) buttons.get(returnFocusId || focusId)?.focus({ preventScroll: true });
+    buttons.forEach((button) => button.classList.remove("is-return-focus"));
+    if (focusId) {
+      const returnButton = buttons.get(returnFocusId || focusId);
+      returnButton?.classList.add("is-return-focus");
+      returnButton?.focus({ preventScroll: true });
+    }
     returnFocusId = null;
     if (focusId) window.scrollTo(0, hasOverviewScroll ? overviewScrollY : 0);
     history.scrollRestoration = originalScrollRestoration;
@@ -1285,10 +1305,10 @@
     const projectChanged = active?.id !== project.id;
     active = project;
     heading.hidden = false;
-    syncBackTypewriter();
     setPortraitOverview(false);
     renderCopy(project);
     experience.classList.add("is-detail");
+    syncBackTypewriter();
     if (projectChanged) showTarget(project);
     hoveredId = null;
     focusedId = null;
@@ -1339,7 +1359,7 @@
     const previousState = state;
     const version = ++requestVersion;
     pendingHeadingFocus = null;
-    if (document.activeElement === title) back.focus({ preventScroll: true });
+    if (document.activeElement === title) visibleBack().focus({ preventScroll: true });
     if (state === "loading") {
       settleOverview(project.id);
       return;
@@ -1434,6 +1454,7 @@
   }
 
   back.addEventListener("click", returnToProjects);
+  mobileBack.addEventListener("click", returnToProjects);
   projectsLinks.forEach((projectsLink) => projectsLink.addEventListener("click", (event) => {
     if (state === "overview" || event.button !== 0 || event.metaKey ||
         event.ctrlKey || event.shiftKey || event.altKey) return;
@@ -1443,7 +1464,7 @@
   document.addEventListener("keydown", (event) => {
     if (event.defaultPrevented) return;
     if (event.key === "Escape" && state !== "overview") {
-      back.click();
+      visibleBack().click();
       return;
     }
     if (mobileNav.matches || !active || state === 'closing' || event.repeat || event.isComposing ||

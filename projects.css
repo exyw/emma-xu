@@ -208,6 +208,8 @@
   outline-offset: 4px;
 }
 
+.project-choice.is-return-focus { outline: none; }
+
 .projects-back:focus-visible {
   outline-color: var(--project-transition-ink, var(--project-focus));
 }
@@ -318,6 +320,8 @@
   text-align: left;
   white-space: nowrap;
 }
+
+.projects-detail-header { display: none; }
 
 .projects-title {
   display: inline-block;
@@ -484,7 +488,7 @@
     min-height: 0;
     padding: 12px max(20px, env(safe-area-inset-right)) calc(72px + env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left));
   }
-  .projects-experience.is-detail { padding-bottom: calc(80px + env(safe-area-inset-bottom)); }
+  .projects-experience.is-detail { padding-bottom: calc(20px + env(safe-area-inset-bottom)); }
   html:not(.projects-initial-detail) .projects-page.portrait-overview-page .projects-experience {
     min-height: 100svh;
     justify-content: center;
@@ -504,6 +508,39 @@
   .projects-meta { overflow-wrap: anywhere; }
   .projects-meta__text { min-width: 0; }
   .projects-back { min-height: 44px; padding: 10px 0; }
+  .projects-experience.is-detail .projects-heading > .projects-back { visibility: hidden; }
+  .projects-experience.is-detail .projects-detail-header {
+    position: sticky;
+    z-index: 4;
+    top: 0;
+    display: flex;
+    box-sizing: border-box;
+    width: calc(100% + max(20px, env(safe-area-inset-left)) + max(20px, env(safe-area-inset-right)));
+    height: 56px;
+    flex: none;
+    align-self: flex-start;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: -12px;
+    margin-left: calc(-1 * max(20px, env(safe-area-inset-left)));
+    margin-bottom: -44px;
+    padding: 12px max(20px, env(safe-area-inset-right)) 0 max(20px, env(safe-area-inset-left));
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+  }
+  .projects-detail-back { margin: 0; }
+  .projects-detail-contact {
+    display: flex;
+    min-height: 44px;
+    align-items: center;
+    color: var(--project-transition-ink, var(--project-ink));
+    font: 700 13px/1.4 courier, monospace;
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+    white-space: nowrap;
+  }
+  .projects-detail-contact:focus-visible { outline: 2px solid var(--project-focus); outline-offset: 2px; }
   .projects-copy { width: min(420px, 100%); }
   .projects-copy a { white-space: normal; max-width: 100%; overflow-wrap: anywhere; }
   .projects-copy .typewriter-link__text { max-width: 100%; white-space: normal; }
