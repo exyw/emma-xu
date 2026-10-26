@@ -1,5 +1,7 @@
 // Verified asset paths and supplied public copy. The overview slots match the
 // small SVGs' positions in Figma Frame 3 (node 2256:7748).
+// detailCrop maps an original image's visible pixel bounds to the full
+// detail ASCII frame; originals without transparent padding use the full image.
 // colour names generated WebP versions of the small ASCII artwork for overview previews.
 window.projectConfig = {
   "crop": { "x": 440, "y": 30, "width": 300, "height": 850 },
@@ -7,6 +9,7 @@ window.projectConfig = {
     {
       "id": "chip", "title": "Adventures of Chip", "small": "Chip small.svg",
       "large": "Chip large.svg", "original": "CHIP asset.png", "colour": "chip.webp",
+      "detailCrop": { "sourceWidth": 429, "sourceHeight": 362, "x": 28, "y": 169, "width": 219, "height": 193 },
       "slot": { "x": 514, "y": 43, "width": 175, "height": 135 },
       "art": { "width": 211, "height": 181, "maxWidth": 330, "maxHeight": 285 },
       "meta": "Unity, C# · 2026",
@@ -19,8 +22,9 @@ window.projectConfig = {
     {
       "id": "wit", "title": "WIT", "small": "WIT logo small.svg",
       "large": "WIT logo large.svg", "original": "WIT logo asset.png", "colour": "wit.webp",
+      "detailCrop": { "sourceWidth": 529, "sourceHeight": 494, "x": 60, "y": 89, "width": 371, "height": 288 },
       "slot": { "x": 452, "y": 194, "width": 193, "height": 143 },
-      "art": { "width": 351, "height": 251, "maxWidth": 400, "maxHeight": 285 },
+      "art": { "width": 351, "height": 283, "maxWidth": 400, "maxHeight": 322 },
       "meta": "React, TypeScript, CSS, Vite, Cloudflare · 2026",
       "paragraphs": [
         [
@@ -36,7 +40,7 @@ window.projectConfig = {
       "id": "dk", "title": "Donkey Kong", "small": "DK small.svg",
       "large": "DK large.svg", "original": "DK asset.jpg", "colour": "dk.webp",
       "slot": { "x": 576, "y": 370, "width": 145, "height": 88 },
-      "art": { "width": 528, "height": 323, "maxWidth": 500, "maxHeight": 306 },
+      "art": { "width": 528, "height": 354, "maxWidth": 500, "maxHeight": 335 },
       "meta": "Java · 2025"
     },
     {

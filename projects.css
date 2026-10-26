@@ -98,6 +98,29 @@
   filter: drop-shadow(0 0 1.5px rgb(248 240 227 / 90%));
 }
 
+.projects-target__art { transition: opacity 200ms ease; }
+
+.projects-target__reveal {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.projects-target__original {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  pointer-events: none;
+}
+
+.projects-target.is-original .projects-target__art { opacity: 0; }
+.projects-target.is-original .projects-target__reveal { opacity: 1; }
+
 .project-choice {
   position: absolute;
   z-index: 1;
@@ -252,6 +275,46 @@
   opacity: .4;
 }
 
+.projects-meta--with-original {
+  --project-divider-extension: 0ch;
+  position: relative;
+  padding-right: calc(13ch + 12px);
+}
+
+.projects-meta--with-original.is-showing-original { --project-divider-extension: 3ch; }
+
+.projects-meta--with-original::after { margin-right: calc(-1 * var(--project-divider-extension)); }
+
+.projects-original-toggle {
+  position: absolute;
+  top: 50%;
+  right: -8px;
+  display: flex;
+  box-sizing: border-box;
+  min-width: calc(13ch + 16px);
+  min-height: 44px;
+  align-items: center;
+  justify-content: flex-end;
+  margin: 0;
+  padding: 0 8px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  font-weight: 700;
+  text-decoration: none;
+  transform: translateY(-50%);
+  white-space: nowrap;
+}
+
+.projects-original-toggle:focus-visible {
+  outline: 2px solid var(--project-focus);
+  outline-offset: 2px;
+}
+
 .projects-copy {
   color: var(--project-body);
   position: relative;
@@ -336,6 +399,7 @@
 @media (prefers-reduced-motion: reduce) {
   .projects-stage__motion { will-change: auto; }
   .project-choice__colour { transition: none; }
+  .projects-target__art, .projects-target__reveal { transition: none; }
   .projects-heading > div,
   .projects-copy,
   .projects-copy > p,
@@ -392,4 +456,23 @@
     color: var(--project-transition-ink, var(--project-ink));
   }
   .projects-experience.is-transitioning .project-pagination { background: transparent; }
+
+  @media (max-width: 360px) {
+    .projects-meta--with-original { display: block; padding-right: 0; }
+    .projects-meta--with-original::before {
+      float: right;
+      width: calc(13ch + 28px);
+      height: 44px;
+      content: "";
+    }
+    .projects-meta--with-original::after {
+      position: absolute;
+      top: 50%;
+      right: calc(13ch + 12px - var(--project-divider-extension));
+      width: calc(24px + var(--project-divider-extension));
+      min-width: 0;
+      margin-right: 0;
+      transform: translateY(-50%);
+    }
+  }
 }

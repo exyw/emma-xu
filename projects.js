@@ -8,6 +8,7 @@
   const title = document.querySelector(".projects-title");
   const meta = document.querySelector(".projects-meta");
   const metaText = document.querySelector(".projects-meta__text");
+  const originalToggle = document.querySelector(".projects-original-toggle");
   const copy = document.querySelector(".projects-copy");
   const back = document.querySelector(".projects-back");
   const nav = document.querySelector(".site-nav--portrait");
@@ -115,8 +116,7 @@
   function makeTargetArt(project) {
     const { width, height } = project.art;
     const wrapper = document.createElement("div");
-    wrapper.className = `projects-target${project.id === 'cnn' ? ' projects-target--cnn' : ''}`;
-    wrapper.setAttribute("aria-hidden", "true");
+    wrapper.className = `projects-target projects-target--${project.id}`;
     const art = svg("svg", {
       class: "projects-target__art", viewBox: `0 0 ${width} ${height}`,
       "aria-hidden": "true", focusable: "false",
@@ -143,7 +143,24 @@
     const far = makeLayer(rgb(motion.lightGrey), motion.farOpacity);
     const near = makeLayer(rgb(motion.lightGrey), motion.nearOpacity);
     makeLayer(rgb(motion.ivory), 1);
-    wrapper.append(art);
+    const original = document.createElement("img");
+    original.className = "projects-target__original";
+    original.src = imageUrl(project.original);
+    original.alt = "";
+    original.setAttribute("aria-hidden", "true");
+    original.draggable = false;
+    if (project.detailCrop) {
+      const { sourceWidth, sourceHeight, x, y, width: visibleWidth, height: visibleHeight } = project.detailCrop;
+      original.style.left = `${-x / visibleWidth * 100}%`;
+      original.style.top = `${-y / visibleHeight * 100}%`;
+      original.style.width = `${sourceWidth / visibleWidth * 100}%`;
+      original.style.height = `${sourceHeight / visibleHeight * 100}%`;
+    }
+    const reveal = document.createElement("div");
+    reveal.className = "projects-target__reveal";
+    reveal.setAttribute("aria-hidden", "true");
+    reveal.append(original);
+    wrapper.append(art, reveal);
     return { wrapper, near, far };
   }
 
@@ -165,6 +182,10 @@
   stage.append(layer);
   const buttons = new Map();
   let targetArt = null;
+  let originalShown = false;
+  let imageWasCompact = mobileNav.matches;
+  let originalToggleLabel = "";
+  let originalToggleWriterCompact = mobileNav.matches;
   let active = null;
   let state = "overview";
   let progress = 0;
@@ -524,11 +545,44 @@
   }
 
   function showTarget(project) {
+    resetDetailImage();
     targetHost.replaceChildren();
     targetArt = makeTargetArt(project);
     targetHost.append(targetArt.wrapper);
+    updateDetailImage();
     updateGeometry();
   }
+
+  function resetDetailImage() {
+    originalShown = false;
+  }
+
+  function updateDetailImage() {
+    if (!targetArt || !active) return;
+    const ready = state === "detail";
+    targetArt.wrapper.classList.toggle("is-original", ready && originalShown);
+    meta.classList.toggle("is-showing-original", originalShown);
+    originalToggle.disabled = !ready;
+    const nextLabel = originalShown ? "View ASCII" : "View Original";
+    if (nextLabel !== originalToggleLabel || mobileNav.matches !== originalToggleWriterCompact) {
+      originalToggle.typewriter?.destroy();
+      originalToggle.textContent = nextLabel;
+      originalToggle.setAttribute("aria-label", nextLabel);
+      window.attachTypewriter(originalToggle);
+      originalToggleLabel = nextLabel;
+      originalToggleWriterCompact = mobileNav.matches;
+    }
+    if (ready) {
+      const stageLabel = `${active.title} ${originalShown ? "original image" : "ASCII artwork"}`;
+      if (stage.getAttribute("aria-label") !== stageLabel) stage.setAttribute("aria-label", stageLabel);
+    }
+  }
+
+  originalToggle.addEventListener("click", () => {
+    if (state !== "detail") return;
+    originalShown = !originalShown;
+    updateDetailImage();
+  });
 
   function renderCopy(project) {
     renderedProjectId = project.id;
@@ -586,6 +640,7 @@
     stage.setAttribute("aria-label", `${active.title} ASCII artwork`);
     stage.removeAttribute("aria-busy");
     experience.classList.add("is-detail");
+    updateDetailImage();
     if (closingToOverview) {
       closingToOverview = false;
       updateGeometry();
@@ -601,6 +656,8 @@
     announcement.textContent = "";
     state = "overview";
     progress = 0;
+    resetDetailImage();
+    updateDetailImage();
     source.hidden = false;
     source.inert = false;
     projects.forEach((project) => {
@@ -908,6 +965,7 @@
     }
     state = "loading";
     progress = previousState === "closing" ? previousProgress : 0;
+    updateDetailImage();
     updateTransitionView();
     source.style.pointerEvents = "none";
     source.inert = true;
@@ -932,6 +990,11 @@
 
   async function closeProject() {
     if (state === "overview" || !active) return;
+    resetDetailImage();
+    if (targetArt) {
+      updateDetailImage();
+      originalToggle.disabled = true;
+    }
     const project = active;
     const previousState = state;
     const version = ++requestVersion;
@@ -1003,8 +1066,10 @@
   function adjacentProject(direction) {
     if (!active) return;
     const project = projects[mod(projects.indexOf(active) + direction, projects.length)];
+    const originalFocused = document.activeElement === originalToggle;
     if (!mobileNav.matches && document.activeElement === title) title.blur();
     navigateProject(project, mobileNav.matches);
+    if (!mobileNav.matches && originalFocused) originalToggle.focus({ preventScroll: true });
     if (!mobileNav.matches) {
       announcement.textContent = `Project ${projects.indexOf(project) + 1} of ${projects.length}: ${project.title}`;
     }
@@ -1052,6 +1117,10 @@
   window.addEventListener("popstate", syncFromLocation);
   window.addEventListener("hashchange", syncFromLocation);
   function reflow() {
+    if (mobileNav.matches !== imageWasCompact) {
+      imageWasCompact = mobileNav.matches;
+      resetDetailImage();
+    }
     projects.forEach((project) => {
       const button = buttons.get(project.id);
       if (mobileNav.matches) button.title = project.title;
@@ -1066,6 +1135,7 @@
     updateTransitionView();
     updateGeometry();
     positionDetailContent();
+    updateDetailImage();
     updateNavRelease();
     if ((state === "opening" || state === "closing") && active) prepareBuffers(active).then(() => drawMotion());
     else drawMotion();
@@ -1073,9 +1143,14 @@
   window.addEventListener('resize', reflow);
   mobileNav.addEventListener('change', reflow);
   window.addEventListener("scroll", queueNavRelease, { passive: true });
-  document.addEventListener("visibilitychange", updateRunState);
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) { resetDetailImage(); updateDetailImage(); }
+    updateRunState();
+  });
   window.addEventListener("pagehide", () => {
     pageActive = false;
+    resetDetailImage();
+    updateDetailImage();
     saveReadingPosition();
     history.scrollRestoration = originalScrollRestoration;
     updateRunState();
@@ -1086,6 +1161,7 @@
     updateRunState();
   });
   window.siteMotion.subscribe(() => {
+    updateDetailImage();
     updateRunState();
     updateNavRelease();
   });
@@ -1093,6 +1169,7 @@
   if ("IntersectionObserver" in window) {
     const observer = new IntersectionObserver((entries) => {
       isIntersecting = entries[0].isIntersecting;
+      if (!isIntersecting) { resetDetailImage(); updateDetailImage(); }
       updateRunState();
     }, { threshold: 0.01 });
     observer.observe(stage);

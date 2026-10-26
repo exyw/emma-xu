@@ -534,7 +534,31 @@ async function flush(p) { await new Promise((resolve) => setTimeout(resolve, 0))
 
   for (const id of ['chip', 'wit', 'dk', 'cnn', 'connect3']) {
     const direct = page('projects.html', { hash: `#${id}`, reduced: true });
-    check(label(direct, '.projects-title').textContent === direct.w.projectConfig.projects.find((p) => p.id === id).title, `Direct ${id} route renders matching content`);
+    const project = direct.w.projectConfig.projects.find((item) => item.id === id);
+    check([...direct.d.querySelectorAll('.project-choice__colour')].every((image) => !image.hasAttribute('src')),
+      `Direct ${id} route does not request overview colour previews`);
+    const largeSvg = fs.readFileSync(path.join(root, 'assets/projects/ascii', project.large), 'utf8');
+    const viewBox = largeSvg.match(/\bviewBox="0 0 (\d+) (\d+)"/);
+    check(viewBox && Number(viewBox[1]) === project.art.width && Number(viewBox[2]) === project.art.height,
+      `Direct ${id} artwork frame matches its supplied large SVG`);
+    if (project.detailCrop) {
+      const originalFile = fs.readFileSync(path.join(root, 'assets/projects/images', project.original));
+      check(originalFile.toString('ascii', 1, 4) === 'PNG' &&
+        originalFile.readUInt32BE(16) === project.detailCrop.sourceWidth &&
+        originalFile.readUInt32BE(20) === project.detailCrop.sourceHeight,
+      `Direct ${id} crop uses the current original image dimensions`);
+    }
+    check(label(direct, '.projects-title').textContent === project.title, `Direct ${id} route renders matching content`);
+    check(label(direct, '.projects-target__original').src.endsWith(encodeURIComponent(project.original)) &&
+      label(direct, '.projects-original-toggle').textContent === 'View Original',
+    `Direct ${id} route prepares its original image behind the ASCII`);
+    const originalImage = label(direct, '.projects-target__original');
+    check(direct.w.getComputedStyle(originalImage).objectFit === 'fill' && (!project.detailCrop ||
+      Math.abs(parseFloat(originalImage.style.left) + project.detailCrop.x / project.detailCrop.width * 100) < 0.01 &&
+      Math.abs(parseFloat(originalImage.style.top) + project.detailCrop.y / project.detailCrop.height * 100) < 0.01 &&
+      Math.abs(parseFloat(originalImage.style.width) * project.detailCrop.width / project.detailCrop.sourceWidth - 100) < 0.01 &&
+      Math.abs(parseFloat(originalImage.style.height) * project.detailCrop.height / project.detailCrop.sourceHeight - 100) < 0.01),
+    `Direct ${id} original content maps to its full ASCII artwork frame`);
     check(!direct.d.body.classList.contains('portrait-overview-page') &&
       direct.w.getComputedStyle(label(direct, '.site-nav--portrait')).display === 'none',
     `Direct ${id} route also hides the mobile site navigation`);
@@ -542,6 +566,85 @@ async function flush(p) { await new Promise((resolve) => setTimeout(resolve, 0))
     check(!direct.w.location.hash && label(direct, '.projects-heading').hidden, 'Direct-route All projects works');
     direct.close();
   }
+
+  const mobileReveal = page('projects.html', { hash: '#cnn', reduced: true });
+  const mobileArt = label(mobileReveal, '.projects-target');
+  const mobileToggle = label(mobileReveal, '.projects-original-toggle');
+  check(!label(mobileReveal, '.projects-target__toggle') && !mobileToggle.disabled,
+    'Detail artwork is not a button and the metadata control is available');
+  mobileReveal.click(mobileArt);
+  check(mobileToggle.textContent === 'View Original' &&
+    !mobileArt.classList.contains('is-original'),
+  'Touching the ASCII artwork does not flip it');
+  mobileReveal.click(mobileToggle);
+  check(mobileToggle.textContent === 'View ASCII' &&
+    label(mobileReveal, '.projects-target').classList.contains('is-original') &&
+    label(mobileReveal, '.projects-meta').classList.contains('is-showing-original') &&
+    mobileToggle.getAttribute('aria-label') === 'View ASCII' &&
+    !mobileToggle.hasAttribute('aria-pressed'),
+  'The metadata button reveals the original and names its next action');
+  mobileReveal.click(mobileToggle);
+  check(mobileToggle.textContent === 'View Original' &&
+    !label(mobileReveal, '.projects-target').classList.contains('is-original') &&
+    !label(mobileReveal, '.projects-meta').classList.contains('is-showing-original'),
+  'Second metadata button press restores ASCII');
+  mobileReveal.swipe(mobileToggle, -100);
+  check(mobileReveal.w.location.hash === '#cnn', 'Swipe starting on metadata control does not navigate');
+  mobileReveal.swipe(mobileArt, -100);
+  check(mobileReveal.w.location.hash === '#connect3' &&
+    label(mobileReveal, '.projects-original-toggle').textContent === 'View Original',
+  'Swipe starting on non-interactive detail artwork still pages and resets the image');
+  mobileReveal.close();
+
+  const desktopReveal = page('projects.html', { hash: '#chip', width: 1512, height: 982, reduced: true });
+  const desktopArt = label(desktopReveal, '.projects-target');
+  const desktopToggle = label(desktopReveal, '.projects-original-toggle');
+  const desktopTarget = label(desktopReveal, '.projects-target');
+  desktopReveal.pointer(desktopToggle, 'mouseenter', { pointerType: 'mouse' });
+  check(!desktopToggle.classList.contains('is-typing') && desktopToggle.textContent === 'View Original',
+    'Reduced motion leaves the original toggle label still on hover');
+  desktopReveal.pointer(desktopArt, 'pointerenter', { pointerType: 'mouse', clientX: 120, clientY: 200 });
+  desktopReveal.pointer(desktopArt, 'pointermove', { pointerType: 'mouse', clientX: 220, clientY: 200 });
+  check(!desktopTarget.classList.contains('is-original') &&
+    !label(desktopReveal, '.projects-target__reveal').style.maskImage &&
+    desktopToggle.textContent === 'View Original',
+  'Desktop pointer movement leaves the ASCII artwork unchanged');
+  desktopReveal.click(desktopArt, 0);
+  check(!desktopTarget.classList.contains('is-original'), 'Art click does not flip the image');
+  desktopReveal.click(desktopToggle, 0);
+  check(desktopTarget.classList.contains('is-original') &&
+    desktopToggle.textContent === 'View ASCII',
+  'Keyboard activation of metadata control flips to the full original');
+  desktopReveal.click(desktopToggle, 0);
+  check(!desktopTarget.classList.contains('is-original') && desktopToggle.textContent === 'View Original',
+    'Second keyboard activation of metadata control flips back to ASCII');
+  desktopReveal.click(label(desktopReveal, '.project-next'));
+  check(label(desktopReveal, '.projects-original-toggle').textContent === 'View Original',
+    'Adjacent project starts with its ASCII artwork');
+  desktopReveal.close();
+
+  const hover = page('projects.html', { hash: '#chip', width: 1512, height: 982 });
+  const hoverArt = label(hover, '.projects-target');
+  const hoverToggle = label(hover, '.projects-original-toggle');
+  check(Boolean(hoverToggle.typewriter) &&
+    hover.w.getComputedStyle(hoverToggle).fontWeight === '700' &&
+    hover.w.getComputedStyle(hoverToggle).textDecoration === 'none',
+  'Original toggle uses the shared typewriter and bold, non-underlined metadata styling');
+  hover.pointer(hoverToggle, 'mouseenter', { pointerType: 'mouse' });
+  check(hoverToggle.classList.contains('is-typing') &&
+    hoverToggle.textContent === 'V' &&
+    hoverToggle.getAttribute('aria-label') === 'View Original',
+  'Original toggle types on desktop hover while retaining its full accessible name');
+  hover.pointer(hoverToggle, 'mouseleave', { pointerType: 'mouse' });
+  check(!hoverToggle.classList.contains('is-typing') && hoverToggle.textContent === 'View Original',
+    'Original toggle restores its full label when the pointer leaves');
+  hover.pointer(hoverArt, 'pointerenter', { pointerType: 'mouse', clientX: 120, clientY: 200 });
+  hover.pointer(hoverArt, 'pointermove', { pointerType: 'mouse', clientX: 320, clientY: 200 });
+  hover.advance(1800);
+  check(!hoverArt.classList.contains('is-original') &&
+    !label(hover, '.projects-target__reveal').style.maskImage,
+  'Ordinary desktop hover does not reveal the original');
+  hover.close();
 
   const flip = page('projects.html');
   flip.click(label(flip, '[data-project="chip"]'));
