@@ -58,6 +58,7 @@
   const asciiUrl = (name) => url(`${assets}ascii/${name}`);
   const colourUrl = (name) => url(`${assets}colour/${name}`);
   const imageUrl = (name) => url(`${assets}images/${name}`);
+  const colourMapUrl = (name) => url(`${assets}colour-map/${name}`);
   const rgb = (value) => `rgb(${value.join(" ")})`;
   const mix = (a, b, fraction) => a.map((channel, index) => Math.round(channel + (b[index] - channel) * fraction));
   const clamp = (value, low, high) => Math.min(high, Math.max(low, value));
@@ -184,9 +185,17 @@
   const buttons = new Map();
   let targetArt = null;
   let originalShown = false;
+  let visualOriginalShown = false;
+  let layoutOriginalShown = false;
+  let detailSwitchVersion = 0;
+  let detailSwitchFrame = null;
+  let detailSwitchActive = false;
+  const detailSourceImages = new Map();
+  const detailTargetImages = new Map();
   let imageWasCompact = mobileNav.matches;
   let originalToggleLabel = "";
   let originalToggleWriterCompact = mobileNav.matches;
+  let previewSwitchTimer = null;
   let active = null;
   let state = "overview";
   let progress = 0;
@@ -537,7 +546,8 @@
     if (!experience.classList.contains("is-detail") || !geometry.targetRect) return;
     const { y, height } = geometry.targetRect;
     const artGap = mobileNav.matches ? 24 : 28;
-    const showingWebsite = state === "detail" && originalShown && Boolean(active?.homepage);
+    const showingWebsite = state === "detail" && layoutOriginalShown && Boolean(active?.homepage) &&
+      Boolean(targetArt?.siteFrame?.classList.contains("is-ready"));
     const visibleHeight = showingWebsite
       ? copy.getBoundingClientRect().width * siteViewport.height / siteViewport.width
       : height;
@@ -568,25 +578,248 @@
     targetHost.replaceChildren();
     targetArt = makeTargetArt(project);
     targetHost.append(targetArt.wrapper);
+    getDetailSource(project);
+    getDetailTarget(project);
     updateDetailImage();
     updateGeometry();
   }
 
+  function getDetailSource(project) {
+    if (!detailSourceImages.has(project.id)) {
+      const image = new Image();
+      image.src = asciiUrl(project.large);
+      detailSourceImages.set(project.id, image.decode().then(() => image).catch(() => null));
+    }
+    return detailSourceImages.get(project.id);
+  }
+
+  function getDetailTarget(project) {
+    if (!detailTargetImages.has(project.id)) {
+      const image = new Image();
+      image.src = colourMapUrl(project.colour);
+      detailTargetImages.set(project.id, image.decode().then(() => image).catch(() => null));
+    }
+    return detailTargetImages.get(project.id);
+  }
+
+  function cancelDetailSwitch() {
+    detailSwitchVersion += 1;
+    if (detailSwitchFrame !== null) window.cancelAnimationFrame(detailSwitchFrame);
+    detailSwitchFrame = null;
+    detailSwitchActive = false;
+    targetArt?.wrapper.classList.remove("is-flipping");
+    targetArt?.reveal.style.removeProperty("clip-path");
+    targetArt?.sitePanel?.style.removeProperty("clip-path");
+    targetHost.querySelector(".projects-detail-flip")?.remove();
+  }
+
+  async function animateDetailSwitch(toOriginal) {
+    if (!targetArt || !active || state !== "detail") return;
+    if (window.siteMotion.stopped) {
+      visualOriginalShown = toOriginal;
+      layoutOriginalShown = toOriginal;
+      updateDetailImage();
+      positionDetailContent();
+      return;
+    }
+    const art = targetArt;
+    const project = active;
+    const version = ++detailSwitchVersion;
+    detailSwitchActive = true;
+    if (art.sitePanel) art.sitePanel.inert = true;
+    const [sourceImage, targetImage] = await Promise.all([getDetailSource(project), getDetailTarget(project)]);
+    if (version !== detailSwitchVersion || art !== targetArt || state !== "detail" || originalShown !== toOriginal) return;
+    const finishImmediately = () => {
+      detailSwitchActive = false;
+      visualOriginalShown = toOriginal;
+      layoutOriginalShown = toOriginal;
+      art.reveal.style.removeProperty("clip-path");
+      art.sitePanel?.style.removeProperty("clip-path");
+      updateDetailImage();
+      positionDetailContent();
+    };
+    if (!sourceImage || !targetImage) { finishImmediately(); return; }
+
+    const bounds = art.wrapper.getBoundingClientRect();
+    const scale = Math.min(2, window.devicePixelRatio || 1);
+    const sourceRaster = document.createElement("canvas");
+    const colourRaster = document.createElement("canvas");
+    const canvas = document.createElement("canvas");
+    sourceRaster.width = colourRaster.width = canvas.width = Math.max(1, Math.round(bounds.width * scale));
+    sourceRaster.height = colourRaster.height = canvas.height = Math.max(1, Math.round(bounds.height * scale));
+    const sourceContext = sourceRaster.getContext("2d");
+    const colourContext = colourRaster.getContext("2d");
+    const context = canvas.getContext("2d");
+    if (!sourceContext || !colourContext || !context) { finishImmediately(); return; }
+    try {
+      sourceContext.drawImage(sourceImage, 0, 0, canvas.width, canvas.height);
+      sourceContext.globalCompositeOperation = "source-in";
+      sourceContext.fillStyle = rgb(motion.ivory);
+      sourceContext.fillRect(0, 0, canvas.width, canvas.height);
+      sourceContext.globalCompositeOperation = "source-over";
+      colourContext.drawImage(targetImage, 0, 0, canvas.width, canvas.height);
+      colourContext.globalCompositeOperation = "destination-in";
+      colourContext.drawImage(sourceRaster, 0, 0);
+    } catch { finishImmediately(); return; }
+
+    const cell = Math.max(4, Math.round(7 * scale));
+    let pixels = null;
+    try { pixels = sourceContext.getImageData(0, 0, canvas.width, canvas.height).data; }
+    catch { /* Local-file browsers may restrict canvas reads; the flip still works. */ }
+    const columns = Math.ceil(canvas.width / cell);
+    const rows = Math.ceil(canvas.height / cell);
+    const glyphs = [];
+    for (let row = 0; row < rows; row += 1) {
+      for (let column = 0; column < columns; column += 1) {
+        const x = column * cell;
+        const y = row * cell;
+        const width = Math.min(cell, canvas.width - x);
+        const height = Math.min(cell, canvas.height - y);
+        if (pixels) {
+          let painted = false;
+          for (let py = y; py < y + height && !painted; py += 1) {
+            for (let px = x; px < x + width; px += 1) {
+              if (pixels[(py * canvas.width + px) * 4 + 3] > 8) { painted = true; break; }
+            }
+          }
+          if (!painted) continue;
+        }
+        const seed = ((column * 73 + row * 151 + column * row * 3) % 997) / 997;
+        const delay = (column / columns * .45 + row / rows * .25 + seed * .1) * .72;
+        glyphs.push({ x, y, width, height, delay });
+      }
+    }
+    canvas.className = `projects-detail-flip${project.id === "cnn" ? " projects-detail-flip--cnn" : ""}`;
+    canvas.setAttribute("aria-hidden", "true");
+    const layerBounds = layer.getBoundingClientRect();
+    Object.assign(canvas.style, {
+      left: `${bounds.left - layerBounds.left}px`, top: `${bounds.top - layerBounds.top}px`,
+      width: `${bounds.width}px`, height: `${bounds.height}px`,
+    });
+    targetHost.append(canvas);
+    art.wrapper.classList.add("is-flipping");
+    const started = performance.now();
+    const flipDuration = 460;
+    const wipeDuration = 260;
+    const duration = flipDuration + wipeDuration;
+    let wipeStarted = false;
+    let wipeFinished = false;
+    function setClip(value) {
+      if (art.sitePanel) art.sitePanel.style.clipPath = value;
+      else art.reveal.style.clipPath = value;
+    }
+    function draw(timestamp) {
+      if (version !== detailSwitchVersion) return;
+      const elapsed = clamp(timestamp - started, 0, duration);
+      const flipping = toOriginal
+        ? clamp(elapsed / flipDuration, 0, 1)
+        : 1 - clamp((elapsed - wipeDuration) / flipDuration, 0, 1);
+      const wiping = toOriginal
+        ? clamp((elapsed - flipDuration) / wipeDuration, 0, 1)
+        : clamp(elapsed / wipeDuration, 0, 1);
+      if (!wipeStarted && elapsed >= (toOriginal ? flipDuration : 0)) {
+        wipeStarted = true;
+        if (toOriginal) {
+          setClip("inset(0 0 100% 0)");
+          visualOriginalShown = true;
+          layoutOriginalShown = true;
+          updateDetailImage();
+          if (project.homepage) animatePreviewLayout();
+          positionDetailContent();
+        } else {
+          layoutOriginalShown = false;
+          if (project.homepage) animatePreviewLayout();
+          positionDetailContent();
+        }
+      }
+      if (wipeStarted && !wipeFinished) {
+        setClip(toOriginal
+          ? `inset(0 0 ${((1 - wiping) * 100).toFixed(2)}% 0)`
+          : `inset(${(wiping * 100).toFixed(2)}% 0 0 0)`);
+      }
+      if (!wipeFinished && elapsed >= (toOriginal ? duration : wipeDuration)) {
+        wipeFinished = true;
+        if (!toOriginal) {
+          visualOriginalShown = false;
+          updateDetailImage();
+        }
+      }
+      context.clearRect(0, 0, canvas.width, canvas.height);
+      context.save();
+      if (toOriginal && wipeStarted) {
+        context.beginPath();
+        context.rect(0, wiping * canvas.height, canvas.width, (1 - wiping) * canvas.height);
+        context.clip();
+      } else if (!toOriginal && elapsed < wipeDuration) {
+        context.beginPath();
+        context.rect(0, 0, canvas.width, wiping * canvas.height);
+        context.clip();
+      }
+      for (const glyph of glyphs) {
+        const amount = ease(clamp((flipping - glyph.delay) / .42, 0, 1));
+        const squash = Math.abs(Math.cos(Math.PI * amount));
+        if (squash < .02) continue;
+        const drawHeight = glyph.height * squash;
+        const raster = amount < .5 ? sourceRaster : colourRaster;
+        context.drawImage(raster, glyph.x, glyph.y, glyph.width, glyph.height,
+          glyph.x, glyph.y + (glyph.height - drawHeight) / 2, glyph.width, drawHeight);
+      }
+      context.restore();
+      if (elapsed < duration) {
+        detailSwitchFrame = window.requestAnimationFrame(draw);
+        return;
+      }
+      detailSwitchFrame = null;
+      detailSwitchActive = false;
+      visualOriginalShown = toOriginal;
+      layoutOriginalShown = toOriginal;
+      art.wrapper.classList.remove("is-flipping");
+      art.reveal.style.removeProperty("clip-path");
+      art.sitePanel?.style.removeProperty("clip-path");
+      canvas.remove();
+      updateDetailImage();
+      positionDetailContent();
+    }
+    draw(started);
+  }
+
   function resetDetailImage() {
+    cancelDetailSwitch();
     originalShown = false;
+    visualOriginalShown = false;
+    layoutOriginalShown = false;
     removeWebsitePreview();
+    window.clearTimeout(previewSwitchTimer);
+    previewSwitchTimer = null;
+    experience.classList.remove("is-preview-switching");
+  }
+
+  function animatePreviewLayout() {
+    if (window.siteMotion.stopped) return;
+    window.clearTimeout(previewSwitchTimer);
+    experience.classList.add("is-preview-switching");
+    copy.getBoundingClientRect();
+    previewSwitchTimer = window.setTimeout(() => {
+      experience.classList.remove("is-preview-switching");
+      previewSwitchTimer = null;
+    }, 380);
+  }
+
+  function disposeWebsitePreview(art) {
+    if (!art?.sitePanel) return;
+    art.sitePanel.remove();
+    art.sitePanel = null;
+    art.siteFrame = null;
+    art.siteLink = null;
   }
 
   function removeWebsitePreview() {
-    if (!targetArt?.sitePanel) return;
-    targetArt.sitePanel.remove();
-    targetArt.sitePanel = null;
-    targetArt.siteFrame = null;
-    targetArt.siteLink = null;
+    disposeWebsitePreview(targetArt);
   }
 
   function showWebsitePreview(project) {
     if (targetArt.sitePanel) return;
+    const art = targetArt;
     const panel = document.createElement("div");
     panel.className = "projects-site-preview";
     panel.style.aspectRatio = `${siteViewport.width} / ${siteViewport.height}`;
@@ -596,7 +829,12 @@
     frame.style.height = `${siteViewport.height}px`;
     frame.title = `${project.title} desktop homepage preview`;
     frame.setAttribute("sandbox", "allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox");
-    frame.addEventListener("load", () => frame.classList.add("is-ready"));
+    frame.addEventListener("load", () => {
+      frame.classList.add("is-ready");
+      panel.classList.add("is-ready");
+      if (art.sitePanel !== panel || targetArt !== art || !originalShown || state !== "detail") return;
+      if (!visualOriginalShown && !detailSwitchActive) animateDetailSwitch(true);
+    });
     frame.src = project.homepage;
     const link = document.createElement("a");
     link.className = "projects-site-preview__link";
@@ -625,13 +863,17 @@
   function updateDetailImage() {
     if (!targetArt || !active) return;
     const ready = state === "detail";
-    const showingWebsite = ready && originalShown && Boolean(active.homepage);
+    const showingWebsite = ready && (originalShown || visualOriginalShown) && Boolean(active.homepage);
     if (showingWebsite) showWebsitePreview(active);
     else removeWebsitePreview();
-    if (ready && originalShown && !showingWebsite) targetArt.reveal.removeAttribute("aria-hidden");
+    if (ready && visualOriginalShown && !showingWebsite) targetArt.reveal.removeAttribute("aria-hidden");
     else targetArt.reveal.setAttribute("aria-hidden", "true");
-    targetArt.wrapper.classList.toggle("is-original", ready && originalShown && !showingWebsite);
+    targetArt.wrapper.classList.toggle("is-original", ready && visualOriginalShown && !showingWebsite);
     targetArt.wrapper.classList.toggle("is-site", showingWebsite);
+    targetArt.wrapper.classList.toggle("is-site-ready", ready && visualOriginalShown && showingWebsite &&
+      Boolean(targetArt.siteFrame?.classList.contains("is-ready")));
+    targetArt.sitePanel?.classList.toggle("is-visible", ready && visualOriginalShown);
+    if (targetArt.sitePanel) targetArt.sitePanel.inert = !visualOriginalShown || detailSwitchActive;
     meta.classList.toggle("is-showing-original", originalShown);
     originalToggle.disabled = !ready;
     const nextLabel = originalShown ? "View ASCII" : "View Original";
@@ -649,7 +891,7 @@
       originalToggle.setAttribute("aria-label", nextAccessibleLabel);
     }
     if (ready) {
-      const stageLabel = `${active.title} ${showingWebsite ? "website preview" : originalShown ? "original image" : "ASCII artwork"}`;
+      const stageLabel = `${active.title} ${originalShown && active.homepage ? "website preview" : originalShown ? "original image" : "ASCII artwork"}`;
       if (stage.getAttribute("aria-label") !== stageLabel) stage.setAttribute("aria-label", stageLabel);
     }
   }
@@ -657,8 +899,15 @@
   originalToggle.addEventListener("click", () => {
     if (state !== "detail") return;
     originalShown = !originalShown;
+    cancelDetailSwitch();
     updateDetailImage();
-    positionDetailContent();
+    if ((!originalShown || !active?.homepage || targetArt.siteFrame?.classList.contains("is-ready")) &&
+      visualOriginalShown !== originalShown) {
+      animateDetailSwitch(originalShown);
+    } else if (layoutOriginalShown !== visualOriginalShown) {
+      layoutOriginalShown = visualOriginalShown;
+      positionDetailContent();
+    }
     drawMotion();
   });
 
@@ -943,7 +1192,7 @@
   }
 
   function drawMotion() {
-    if (window.siteMotion.stopped || (state === "detail" && originalShown && active?.homepage)) {
+    if (window.siteMotion.stopped || (state === "detail" && visualOriginalShown)) {
       drawStatic();
       return;
     }
@@ -1242,6 +1491,13 @@
     updateRunState();
   });
   window.siteMotion.subscribe(() => {
+    if (window.siteMotion.stopped && state === "detail" &&
+      (!active?.homepage || !originalShown || targetArt?.siteFrame?.classList.contains("is-ready"))) {
+      cancelDetailSwitch();
+      visualOriginalShown = originalShown;
+      layoutOriginalShown = originalShown;
+      positionDetailContent();
+    }
     updateDetailImage();
     updateRunState();
     updateNavRelease();

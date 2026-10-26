@@ -24,6 +24,7 @@ from PIL import Image, ImageChops, ImageOps
 ROOT = Path(__file__).resolve().parents[1]
 ASSETS = ROOT / "assets/projects"
 OUTPUT = ASSETS / "colour"
+COLOUR_MAP_OUTPUT = ASSETS / "colour-map"
 SCALE = 2
 GAP = 16
 FALLBACK = {
@@ -151,6 +152,7 @@ def main():
     for item in items:
         item["size"] = svg_size(ASSETS / "ascii" / item["small"])
     OUTPUT.mkdir(exist_ok=True)
+    COLOUR_MAP_OUTPUT.mkdir(exist_ok=True)
     with tempfile.TemporaryDirectory(prefix="emma-project-colour-") as temporary:
         masks = rendered_masks(items, Path(temporary))
         for item in items:
@@ -161,6 +163,9 @@ def main():
             # moving any glyph pixels; this keeps saturated ink visible at slot size.
             mask = mask.point(lambda alpha: round(255 * (alpha / 255) ** 0.72) if alpha else 0)
             colour = colour_pixels(item, mask.size)
+            # The detail flip uses the same colours beneath its larger glyph mask.
+            colour.save(COLOUR_MAP_OUTPUT / f"{item['id']}.webp",
+                        "WEBP", quality=88, method=6)
             colour.putalpha(mask)
             destination = OUTPUT / f"{item['id']}.webp"
             colour.save(destination, "WEBP", lossless=True, method=6)

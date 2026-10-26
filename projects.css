@@ -98,13 +98,11 @@
   filter: drop-shadow(0 0 1.5px rgb(248 240 227 / 90%));
 }
 
-.projects-target__art { transition: opacity 200ms ease; }
-
 .projects-target__reveal {
   position: absolute;
   inset: 0;
   overflow: hidden;
-  opacity: 0;
+  visibility: hidden;
   pointer-events: none;
 }
 
@@ -118,31 +116,39 @@
   pointer-events: none;
 }
 
-.projects-target.is-original .projects-target__art { opacity: 0; }
-.projects-target.is-original .projects-target__reveal { opacity: 1; }
-.projects-target.is-site { opacity: 0; }
+.projects-target.is-original .projects-target__reveal { visibility: visible; }
+.projects-target.is-original .projects-target__art,
+.projects-target.is-site-ready .projects-target__art,
+.projects-target.is-flipping .projects-target__art { visibility: hidden; }
+.projects-target.is-flipping { z-index: 2; }
+.projects-detail-flip {
+  position: absolute;
+  z-index: 3;
+  pointer-events: none;
+}
+.projects-detail-flip--cnn { filter: drop-shadow(0 0 1.5px rgb(248 240 227 / 90%)); }
 
 .projects-site-preview {
   position: absolute;
   z-index: 1;
   overflow: hidden;
-  background: #24221f;
   pointer-events: auto;
 }
+
+.projects-site-preview:not(.is-visible) { visibility: hidden; pointer-events: none; }
 
 .projects-site-preview__frame {
   position: absolute;
   top: 0;
   left: 0;
   border: 0;
-  opacity: 0;
+  visibility: hidden;
   pointer-events: none;
   transform: scale(var(--site-scale, 1));
   transform-origin: top left;
-  transition: opacity 200ms ease;
 }
 
-.projects-site-preview__frame.is-ready { opacity: 1; pointer-events: auto; }
+.projects-site-preview__frame.is-ready { visibility: visible; pointer-events: auto; }
 
 .projects-site-preview__link {
   position: absolute;
@@ -159,8 +165,8 @@
 }
 
 .projects-site-preview__icon {
-  width: 20px;
-  height: 20px;
+  width: 16px;
+  height: 16px;
   fill: none;
   stroke: #f8f0e3;
   stroke-width: 2;
@@ -384,6 +390,9 @@
 }
 
 .projects-experience.is-detail .projects-copy { margin-top: var(--project-copy-offset, -136px); }
+.projects-experience.is-preview-switching.is-detail .projects-copy {
+  transition: margin-top 340ms ease;
+}
 
 .projects-experience.is-detail .projects-copy::before {
   position: absolute;
@@ -457,7 +466,7 @@
 @media (prefers-reduced-motion: reduce) {
   .projects-stage__motion { will-change: auto; }
   .project-choice__colour { transition: none; }
-  .projects-target__art, .projects-target__reveal, .projects-site-preview__frame { transition: none; }
+  .projects-experience.is-preview-switching.is-detail .projects-copy { transition: none; }
   .projects-heading > div,
   .projects-copy,
   .projects-copy > p,

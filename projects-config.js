@@ -3,7 +3,8 @@
 // detailCrop maps an original image's visible pixel bounds to the full
 // detail ASCII frame; originals without transparent padding use the full image.
 // homepage is the single URL used by a linked project's copy and live detail preview.
-// colour names generated WebP versions of the small ASCII artwork for overview previews.
+// colour names generated WebP versions of the small ASCII artwork for overview previews
+// and opaque colour maps for the detail flip.
 window.projectConfig = {
   "crop": { "x": 440, "y": 30, "width": 300, "height": 850 },
   "projects": [

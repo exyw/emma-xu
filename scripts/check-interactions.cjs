@@ -449,6 +449,9 @@ async function flush(p) { await new Promise((resolve) => setTimeout(resolve, 0))
   const choices = [...projects.d.querySelectorAll('.project-choice')];
   check(choices.length === 5 && choices.every((button) => button.getAttribute('aria-label')), 'Five directly activatable named project objects');
   const configuredProjects = projects.w.projectConfig.projects;
+  check(configuredProjects.every((project) =>
+    fs.existsSync(path.join(root, 'assets/projects/colour-map', project.colour))),
+  'Every detail flip has a colour map matching its overview asset');
   const colourBytes = configuredProjects.reduce((total, project) => total +
     fs.statSync(path.join(root, 'assets/projects/colour', project.colour)).size, 0);
   const originalBytes = configuredProjects.reduce((total, project) => total +
@@ -567,7 +570,10 @@ async function flush(p) { await new Promise((resolve) => setTimeout(resolve, 0))
     direct.close();
   }
 
-  for (const [id, homepage] of [['wit', 'https://witunimelb.org.au/'], ['connect3', 'https://connect3.app/']]) {
+  for (const [id, homepage] of [
+    ['chip', 'https://play.unity.com/en/games/0198881a-52d3-47bd-b694-dfe287a2e0d8/webgl-builds'],
+    ['wit', 'https://witunimelb.org.au/'], ['connect3', 'https://connect3.app/'],
+  ]) {
     const embedded = page('projects.html', { hash: `#${id}`, reduced: true });
     const toggle = label(embedded, '.projects-original-toggle');
     const art = label(embedded, '.projects-target');
@@ -579,6 +585,9 @@ async function flush(p) { await new Promise((resolve) => setTimeout(resolve, 0))
     const panel = label(embedded, '.projects-site-preview');
     const frame = label(embedded, '.projects-site-preview__frame');
     const openSite = label(embedded, '.projects-site-preview__link');
+    const colour = embedded.w.projectConfig.projects.find((item) => item.id === id).colour;
+    check(colour && fs.existsSync(path.join(root, 'assets/projects/colour-map', colour)),
+      `${id} has a detail colour map matching its overview preview`);
     check(frame?.src === homepage && frame.title === `${embedded.w.projectConfig.projects.find((item) => item.id === id).title} desktop homepage preview` &&
       frame.getAttribute('sandbox').includes('allow-scripts') &&
       frame.style.width === '1280px' && frame.style.height === '800px' &&
@@ -603,6 +612,110 @@ async function flush(p) { await new Promise((resolve) => setTimeout(resolve, 0))
         'Paging away from a linked project unloads its website preview');
     }
     embedded.close();
+  }
+
+  const previewMotion = page('projects.html', { hash: '#wit', width: 1512, height: 982 });
+  const motionToggle = label(previewMotion, '.projects-original-toggle');
+  const motionArt = label(previewMotion, '.projects-target');
+  const motionExperience = label(previewMotion, '.projects-experience');
+  const asciiCopyOffset = motionExperience.style.getPropertyValue('--project-copy-offset');
+  previewMotion.click(motionToggle);
+  const motionPanel = label(previewMotion, '.projects-site-preview');
+  const motionFrame = label(previewMotion, '.projects-site-preview__frame');
+  check(motionPanel && !motionFrame.classList.contains('is-ready') &&
+    !motionArt.classList.contains('is-site-ready') &&
+    motionExperience.style.getPropertyValue('--project-copy-offset') === asciiCopyOffset,
+  'Linked preview keeps ASCII and copy in place while its iframe loads');
+  motionFrame.dispatchEvent(new previewMotion.w.Event('load'));
+  await flush(previewMotion);
+  check(motionFrame.classList.contains('is-ready') &&
+    motionArt.classList.contains('is-flipping') &&
+    label(previewMotion, '.projects-detail-flip') &&
+    !motionPanel.classList.contains('is-visible') &&
+    motionExperience.style.getPropertyValue('--project-copy-offset') === asciiCopyOffset,
+  'Ready iframe starts flipping ASCII while the live website stays hidden');
+  previewMotion.advance(280);
+  check(!motionArt.classList.contains('is-site-ready') && !motionPanel.classList.contains('is-visible') &&
+    motionArt.classList.contains('is-flipping') &&
+    motionExperience.style.getPropertyValue('--project-copy-offset') === asciiCopyOffset,
+  'ASCII glyphs flip in place while the website and copy wait');
+  previewMotion.advance(260);
+  check(motionArt.classList.contains('is-site-ready') && motionPanel.classList.contains('is-visible') &&
+    label(previewMotion, '.projects-detail-flip') && motionPanel.inert &&
+    motionPanel.style.clipPath.startsWith('inset(0 0') &&
+    motionExperience.style.getPropertyValue('--project-copy-offset') !== asciiCopyOffset,
+  'A top-down scan reveals the live website after the glyph flip');
+  previewMotion.advance(200);
+  check(!label(previewMotion, '.projects-detail-flip') && !motionPanel.inert,
+    'Terminal flip finishes cleanly and the website becomes interactive');
+  previewMotion.click(motionToggle);
+  await flush(previewMotion);
+  check(motionArt.classList.contains('is-flipping') && motionPanel.inert &&
+    motionArt.classList.contains('is-site-ready') &&
+    motionExperience.style.getPropertyValue('--project-copy-offset') === asciiCopyOffset,
+  'View ASCII starts a reverse scan and returns the copy toward ASCII');
+  previewMotion.advance(24);
+  previewMotion.click(motionToggle);
+  check(label(previewMotion, '.projects-site-preview') === motionPanel &&
+    !motionArt.classList.contains('is-flipping') && !motionPanel.inert &&
+    motionArt.classList.contains('is-site-ready'),
+  'Rapid reactivation keeps the loaded iframe and cancels the gathering motion');
+  previewMotion.click(motionToggle);
+  await flush(previewMotion);
+  previewMotion.advance(750);
+  check(!label(previewMotion, '.projects-site-preview') &&
+    !label(previewMotion, '.projects-detail-flip') &&
+    motionExperience.style.getPropertyValue('--project-copy-offset') === asciiCopyOffset,
+    'Restored ASCII replaces the preview and unloads its iframe');
+  previewMotion.close();
+
+  const imageMotion = page('projects.html', { hash: '#dk', width: 1512, height: 982 });
+  const imageToggle = label(imageMotion, '.projects-original-toggle');
+  const imageArt = label(imageMotion, '.projects-target');
+  imageMotion.click(imageToggle);
+  await flush(imageMotion);
+  check(imageArt.classList.contains('is-flipping') &&
+    label(imageMotion, '.projects-detail-flip') &&
+    !imageArt.classList.contains('is-original'),
+  'Image-only project flips its ASCII before revealing the original');
+  imageMotion.advance(280);
+  check(!imageArt.classList.contains('is-original') && imageArt.classList.contains('is-flipping'),
+    'Original-image colours enter the ASCII glyphs before the image appears');
+  imageMotion.advance(320);
+  imageMotion.click(imageToggle);
+  await flush(imageMotion);
+  imageMotion.advance(750);
+  check(!imageArt.classList.contains('is-original') &&
+    !imageArt.classList.contains('is-flipping') &&
+    !label(imageMotion, '.projects-detail-flip'),
+  'Returning from an original image reassembles the ASCII and removes the canvas');
+  imageMotion.close();
+
+  for (const id of ['dk', 'cnn']) {
+    const originalMotion = page('projects.html', {
+      hash: `#${id}`, width: id === 'cnn' ? 390 : 1512, height: id === 'cnn' ? 844 : 982,
+    });
+    const motionLayer = label(originalMotion, '.projects-stage__motion');
+    const toggle = label(originalMotion, '.projects-original-toggle');
+    originalMotion.advance(48);
+    check(motionLayer.style.transform.startsWith('translate3d('),
+      `${id} ASCII artwork sways before the original is shown`);
+    originalMotion.click(toggle);
+    await flush(originalMotion);
+    originalMotion.advance(920);
+    check(label(originalMotion, '.projects-target').classList.contains('is-original') &&
+      motionLayer.style.transform === 'none',
+    `${id} original image settles the artwork sway`);
+    originalMotion.advance(200);
+    check(motionLayer.style.transform === 'none',
+      `${id} original image stays still while it is viewed`);
+    originalMotion.click(toggle);
+    await flush(originalMotion);
+    originalMotion.advance(920);
+    check(!label(originalMotion, '.projects-target').classList.contains('is-original') &&
+      motionLayer.style.transform.startsWith('translate3d('),
+    `${id} ASCII artwork resumes swaying after the original closes`);
+    originalMotion.close();
   }
 
   const mobileReveal = page('projects.html', { hash: '#cnn', reduced: true });
@@ -635,7 +748,7 @@ async function flush(p) { await new Promise((resolve) => setTimeout(resolve, 0))
   'Swipe starting on non-interactive detail artwork still pages and resets the image');
   mobileReveal.close();
 
-  const desktopReveal = page('projects.html', { hash: '#chip', width: 1512, height: 982, reduced: true });
+  const desktopReveal = page('projects.html', { hash: '#dk', width: 1512, height: 982, reduced: true });
   const desktopArt = label(desktopReveal, '.projects-target');
   const desktopToggle = label(desktopReveal, '.projects-original-toggle');
   const desktopTarget = label(desktopReveal, '.projects-target');
@@ -662,7 +775,7 @@ async function flush(p) { await new Promise((resolve) => setTimeout(resolve, 0))
     'Adjacent project starts with its ASCII artwork');
   desktopReveal.close();
 
-  const hover = page('projects.html', { hash: '#chip', width: 1512, height: 982 });
+  const hover = page('projects.html', { hash: '#dk', width: 1512, height: 982 });
   const hoverArt = label(hover, '.projects-target');
   const hoverToggle = label(hover, '.projects-original-toggle');
   check(Boolean(hoverToggle.typewriter) &&
