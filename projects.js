@@ -32,6 +32,7 @@
   const assets = "assets/projects/";
   // Match the visible portrait width after the cropped-height correction.
   const sourceWidthScale = 0.886;
+  const siteViewport = { width: 1280, height: 800 };
   const navCopyGap = 24;
   const navEaseDistance = 96;
   const motion = {
@@ -161,7 +162,7 @@
     reveal.setAttribute("aria-hidden", "true");
     reveal.append(original);
     wrapper.append(art, reveal);
-    return { wrapper, near, far };
+    return { wrapper, reveal, near, far, sitePanel: null, siteFrame: null, siteLink: null };
   }
 
   const layer = document.createElement("div");
@@ -536,12 +537,30 @@
     if (!experience.classList.contains("is-detail") || !geometry.targetRect) return;
     const { y, height } = geometry.targetRect;
     const artGap = mobileNav.matches ? 24 : 28;
+    const showingWebsite = state === "detail" && originalShown && Boolean(active?.homepage);
+    const visibleHeight = showingWebsite
+      ? copy.getBoundingClientRect().width * siteViewport.height / siteViewport.width
+      : height;
+    positionWebsitePreview();
     experience.style.setProperty("--project-heading-top",
       `${stage.offsetTop + y - heading.offsetHeight - artGap}px`);
     experience.style.setProperty("--project-copy-offset",
-      `${y + height + artGap - stage.clientHeight}px`);
+      `${y + visibleHeight + artGap - stage.clientHeight}px`);
     experience.style.setProperty("--project-divider-offset", `${-artGap / 2}px`);
     experience.style.setProperty("--project-rule-gap", `${artGap / 2}px`);
+  }
+
+  function positionWebsitePreview() {
+    if (!targetArt?.sitePanel || !geometry?.targetRect) return;
+    const stageBounds = stage.getBoundingClientRect();
+    const copyBounds = copy.getBoundingClientRect();
+    const width = copyBounds.width;
+    Object.assign(targetArt.sitePanel.style, {
+      left: `${copyBounds.left - stageBounds.left}px`,
+      top: `${geometry.targetRect.y}px`,
+      width: `${width}px`,
+    });
+    targetArt.sitePanel.style.setProperty("--site-scale", String(width / siteViewport.width));
   }
 
   function showTarget(project) {
@@ -555,25 +574,82 @@
 
   function resetDetailImage() {
     originalShown = false;
+    removeWebsitePreview();
+  }
+
+  function removeWebsitePreview() {
+    if (!targetArt?.sitePanel) return;
+    targetArt.sitePanel.remove();
+    targetArt.sitePanel = null;
+    targetArt.siteFrame = null;
+    targetArt.siteLink = null;
+  }
+
+  function showWebsitePreview(project) {
+    if (targetArt.sitePanel) return;
+    const panel = document.createElement("div");
+    panel.className = "projects-site-preview";
+    panel.style.aspectRatio = `${siteViewport.width} / ${siteViewport.height}`;
+    const frame = document.createElement("iframe");
+    frame.className = "projects-site-preview__frame";
+    frame.style.width = `${siteViewport.width}px`;
+    frame.style.height = `${siteViewport.height}px`;
+    frame.title = `${project.title} desktop homepage preview`;
+    frame.setAttribute("sandbox", "allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox");
+    frame.addEventListener("load", () => frame.classList.add("is-ready"));
+    frame.src = project.homepage;
+    const link = document.createElement("a");
+    link.className = "projects-site-preview__link";
+    link.href = project.homepage;
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    link.setAttribute("aria-label", `Open site: ${project.title} website (new tab)`);
+    link.title = `Open ${project.title} website in a new tab`;
+    const icon = svg("svg", {
+      class: "projects-site-preview__icon", viewBox: "0 0 24 24",
+      "aria-hidden": "true", focusable: "false",
+    });
+    const iconPath = "M13 3h8v8M21 3l-10 10M19 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h6";
+    icon.append(
+      svg("path", { class: "projects-site-preview__icon-outline", d: iconPath }),
+      svg("path", { d: iconPath }),
+    );
+    link.append(icon);
+    panel.append(frame, link);
+    targetHost.append(panel);
+    targetArt.sitePanel = panel;
+    targetArt.siteFrame = frame;
+    targetArt.siteLink = link;
   }
 
   function updateDetailImage() {
     if (!targetArt || !active) return;
     const ready = state === "detail";
-    targetArt.wrapper.classList.toggle("is-original", ready && originalShown);
+    const showingWebsite = ready && originalShown && Boolean(active.homepage);
+    if (showingWebsite) showWebsitePreview(active);
+    else removeWebsitePreview();
+    if (ready && originalShown && !showingWebsite) targetArt.reveal.removeAttribute("aria-hidden");
+    else targetArt.reveal.setAttribute("aria-hidden", "true");
+    targetArt.wrapper.classList.toggle("is-original", ready && originalShown && !showingWebsite);
+    targetArt.wrapper.classList.toggle("is-site", showingWebsite);
     meta.classList.toggle("is-showing-original", originalShown);
     originalToggle.disabled = !ready;
     const nextLabel = originalShown ? "View ASCII" : "View Original";
+    const nextAccessibleLabel = !originalShown && active.homepage
+      ? `View Original: ${active.title} website` : nextLabel;
     if (nextLabel !== originalToggleLabel || mobileNav.matches !== originalToggleWriterCompact) {
       originalToggle.typewriter?.destroy();
       originalToggle.textContent = nextLabel;
-      originalToggle.setAttribute("aria-label", nextLabel);
+      originalToggle.setAttribute("aria-label", nextAccessibleLabel);
       window.attachTypewriter(originalToggle);
       originalToggleLabel = nextLabel;
       originalToggleWriterCompact = mobileNav.matches;
     }
+    if (originalToggle.getAttribute("aria-label") !== nextAccessibleLabel) {
+      originalToggle.setAttribute("aria-label", nextAccessibleLabel);
+    }
     if (ready) {
-      const stageLabel = `${active.title} ${originalShown ? "original image" : "ASCII artwork"}`;
+      const stageLabel = `${active.title} ${showingWebsite ? "website preview" : originalShown ? "original image" : "ASCII artwork"}`;
       if (stage.getAttribute("aria-label") !== stageLabel) stage.setAttribute("aria-label", stageLabel);
     }
   }
@@ -582,6 +658,8 @@
     if (state !== "detail") return;
     originalShown = !originalShown;
     updateDetailImage();
+    positionDetailContent();
+    drawMotion();
   });
 
   function renderCopy(project) {
@@ -601,7 +679,7 @@
             element.append(document.createTextNode(part));
           } else {
             const link = document.createElement("a");
-            link.href = part.href;
+            link.href = part.homepage ? project.homepage : part.href;
             link.textContent = part.text;
             element.append(link);
           }
@@ -865,7 +943,10 @@
   }
 
   function drawMotion() {
-    if (window.siteMotion.stopped) { drawStatic(); return; }
+    if (window.siteMotion.stopped || (state === "detail" && originalShown && active?.homepage)) {
+      drawStatic();
+      return;
+    }
     if (!geometry) updateGeometry();
     const amplitude = compactMotion.matches ? motion.compactAmplitude : motion.desktopAmplitude;
     const split = compactMotion.matches ? motion.compactSplit : motion.desktopSplit;

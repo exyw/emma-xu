@@ -567,6 +567,44 @@ async function flush(p) { await new Promise((resolve) => setTimeout(resolve, 0))
     direct.close();
   }
 
+  for (const [id, homepage] of [['wit', 'https://witunimelb.org.au/'], ['connect3', 'https://connect3.app/']]) {
+    const embedded = page('projects.html', { hash: `#${id}`, reduced: true });
+    const toggle = label(embedded, '.projects-original-toggle');
+    const art = label(embedded, '.projects-target');
+    check(!label(embedded, '.projects-site-preview') &&
+      label(embedded, '.projects-copy a').href === homepage &&
+      toggle.getAttribute('aria-label').includes('website'),
+    `Direct ${id} keeps its homepage link and waits to create the website preview`);
+    embedded.click(toggle);
+    const panel = label(embedded, '.projects-site-preview');
+    const frame = label(embedded, '.projects-site-preview__frame');
+    const openSite = label(embedded, '.projects-site-preview__link');
+    check(frame?.src === homepage && frame.title === `${embedded.w.projectConfig.projects.find((item) => item.id === id).title} desktop homepage preview` &&
+      frame.getAttribute('sandbox').includes('allow-scripts') &&
+      frame.style.width === '1280px' && frame.style.height === '800px' &&
+      panel.style.aspectRatio === '1280 / 800' &&
+      openSite.href === homepage && openSite.target === '_blank' &&
+      openSite.querySelector('svg[aria-hidden="true"]') && openSite.getAttribute('aria-label').includes('Open site:') &&
+      panel?.parentElement === art.parentElement && frame.parentElement === panel &&
+      art.classList.contains('is-site') &&
+      label(embedded, '.projects-target__reveal').getAttribute('aria-hidden') === 'true' &&
+      label(embedded, '.projects-stage').getAttribute('aria-label').includes('website preview'),
+    `View Original embeds the ${id} homepage with a full-site escape link`);
+    embedded.click(toggle);
+    check(!label(embedded, '.projects-site-preview') &&
+      !label(embedded, '.projects-site-preview__link') &&
+      !art.classList.contains('is-site') &&
+      label(embedded, '.projects-target__reveal').getAttribute('aria-hidden') === 'true',
+    `View ASCII unloads the ${id} website preview`);
+    if (id === 'wit') {
+      embedded.click(toggle);
+      embedded.click(label(embedded, '.project-next'));
+      check(embedded.w.location.hash === '#dk' && !label(embedded, '.projects-site-preview'),
+        'Paging away from a linked project unloads its website preview');
+    }
+    embedded.close();
+  }
+
   const mobileReveal = page('projects.html', { hash: '#cnn', reduced: true });
   const mobileArt = label(mobileReveal, '.projects-target');
   const mobileToggle = label(mobileReveal, '.projects-original-toggle');
@@ -579,6 +617,7 @@ async function flush(p) { await new Promise((resolve) => setTimeout(resolve, 0))
   mobileReveal.click(mobileToggle);
   check(mobileToggle.textContent === 'View ASCII' &&
     label(mobileReveal, '.projects-target').classList.contains('is-original') &&
+    !label(mobileReveal, '.projects-site-preview') &&
     label(mobileReveal, '.projects-meta').classList.contains('is-showing-original') &&
     mobileToggle.getAttribute('aria-label') === 'View ASCII' &&
     !mobileToggle.hasAttribute('aria-pressed'),
