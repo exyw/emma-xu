@@ -195,7 +195,7 @@
   window.addEventListener('pagehide', () => writers.forEach((writer) => writer.reset()));
 
   window.syncNavigationState = () => {
-    const open = window.siteLayout.matches && Boolean(document.querySelector('.site-nav .page-menu.is-open, .site-nav .contact-menu.is-open'));
+    const open = window.siteLayout.matches && Boolean(document.querySelector('.site-nav .page-menu.is-open'));
     document.dispatchEvent(new CustomEvent('site-menu-change', { detail: { open } }));
   };
   document.querySelectorAll('.site-nav').forEach((nav, index) => {

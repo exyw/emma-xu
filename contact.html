@@ -11,32 +11,37 @@
     <div class="contact-background" aria-hidden="true">
       <canvas data-liquid-surface></canvas>
     </div>
-    <main class="contact-stage">
-      <h1 class="visually-hidden">Contact</h1>
-      <p class="contact-intro" aria-label="Introduction">
-        <span class="intro-row"><span class="intro-line">Hi! I’m a final year computing and software systems major at the</span></span>
-        <span class="intro-row"><span class="intro-line">University of Melbourne. If you have stumbled here by chance, please</span></span>
-        <span class="intro-row"><span class="intro-line">spend some time exploring who I am beyond what is written on my CV.</span></span>
-        <span class="intro-row"><span class="intro-line">I work with AI on the daily, so sometimes I sound like ChatGPT and</span></span>
-        <span class="intro-row"><span class="intro-line">Claude combined, but I hope to present my authentic self through this</span></span>
-        <span class="intro-row"><span class="intro-line">website. I want to share my journey and stay a creative mind.</span></span>
-      </p>
-      <nav class="site-nav is-ready" aria-label="Main navigation">
-        <div class="page-menu">
-          <a href="projects.html">Projects</a>
-          <a class="always-visible" href="index.html">Emma Xu</a>
-          <a href="who-i-am.html">Who I am</a>
-        </div>
-        <div class="contact-menu">
-          <a class="contact-link selected" href="#contact-links" aria-current="page" aria-controls="contact-links" aria-expanded="false">Contact</a>
-          <div class="contact-submenu" id="contact-links">
-            <a href="https://www.linkedin.com/in/emma-xu-97a0b4287/">LinkedIn</a>
-            <a href="https://github.com/exyw">GitHub</a>
-            <a href="mailto:emma.xu27@gmail.com">Email</a>
-            <a href="Emma-Xu-CV.pdf" download>CV</a>
+    <main class="contact-scroll">
+      <section class="contact-sequence" aria-label="Contact introduction">
+        <div class="contact-stage">
+          <h1 class="visually-hidden">Contact</h1>
+          <div class="contact-art">
+            <img class="contact-portrait" src="assets/contact/emma.webp" alt="ASCII portrait of Emma Xu" draggable="false">
+            <canvas class="contact-morph" aria-hidden="true"></canvas>
           </div>
+          <div class="contact-content">
+            <p class="contact-intro" aria-label="Introduction">
+              Hi, I'm Emma! I’m a final year computing and software systems major at the University of Melbourne. If you have stumbled here by chance, please spend some time exploring who I am beyond what is written on my CV. I work with AI on the daily, so sometimes I sound like ChatGPT and Claude combined, but I hope to present my authentic self through this website. I want to share my journey and stay a creative mind.
+            </p>
+            <nav class="contact-links" aria-label="Contact methods">
+              <a href="https://www.linkedin.com/in/emma-xu-97a0b4287/">LinkedIn</a>
+              <a href="https://github.com/exyw">GitHub</a>
+              <a href="mailto:emma.xu27@gmail.com">Email</a>
+              <a href="Emma-Xu-CV.pdf" download>CV</a>
+            </nav>
+          </div>
+          <nav class="site-nav is-ready" aria-label="Main navigation">
+            <div class="page-menu">
+              <a href="projects.html">Projects</a>
+              <a class="always-visible" href="index.html">Emma Xu</a>
+              <a href="who-i-am.html">Who I am</a>
+            </div>
+            <div class="contact-menu">
+              <a class="contact-link selected" href="contact.html" aria-current="page">Contact</a>
+            </div>
+          </nav>
         </div>
-      </nav>
+      </section>
     </main>
     <script src="experience.js"></script>
     <script src="navigation.js"></script>

@@ -204,14 +204,6 @@ body.home-page.is-splitting .site-nav .contact-link {
   .site-nav .contact-link, .site-nav .contact-menu { margin-left: auto; }
   .site-nav:has(.page-menu.is-open) { padding-bottom: 96px; }
   .site-nav:has(.contact-menu.is-open) { padding-bottom: 200px; }
-  .site-nav .contact-menu .contact-submenu {
-    top: 100%; left: auto; right: 0; display: flex; flex-direction: column;
-    align-items: flex-end; gap: 0; padding: 8px 0; transform: none;
-    max-height: calc(100svh - 88px); overflow-y: auto;
-  }
-  .site-nav .contact-menu.is-open .contact-submenu { visibility: visible; opacity: 1; pointer-events: auto; transform: none; }
-  .site-nav .contact-menu:not(.is-open) .contact-submenu { visibility: hidden; opacity: 0; pointer-events: none; }
-  .site-nav .contact-submenu a { min-height: 44px; padding: 12px 10px; font-size: 16px; line-height: 20px; }
   .home-page .site-nav {
     --half-nav-gap: 7px;
     --link-padding-x: 6px;

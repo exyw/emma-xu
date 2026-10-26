@@ -136,7 +136,8 @@ async function flush(p) { await new Promise((resolve) => setTimeout(resolve, 0))
     return result;
   }
   let cssDeclarations = 0;
-  for (const [cssFile, baselineFile] of [['global.css', 'global.css'], ['projects.css', 'projects.css'], ['who-i-am.css', 'who-i-am.css'], ['home.css', 'index.html'], ['contact.css', 'contact.html']]) {
+  // Contact now has its own scroll composition; the other desktop pages retain the baseline.
+  for (const [cssFile, baselineFile] of [['global.css', 'global.css'], ['projects.css', 'projects.css'], ['who-i-am.css', 'who-i-am.css'], ['home.css', 'index.html']]) {
     let source = baselineSource(baselineFile);
     if (baselineFile.endsWith('.html')) source = source.match(/<style>([\s\S]*?)<\/style>/)[1];
     const before = desktopRules(source);
@@ -145,9 +146,6 @@ async function flush(p) { await new Promise((resolve) => setTimeout(resolve, 0))
       if (selector === '.mobile-scroll' || selector === '.project-choice__original' || selector === '.project-choice__ascii' ||
           selector === '.project-choice.is-preview .project-choice__original' ||
           selector === '.prelude-title') continue; // Retired overview preview; the masked name is now a button.
-      if (cssFile === 'contact.css' && ['body', '.contact-intro', '.intro-line', '.scroll-cue', '.scroll-cue span:last-child'].includes(selector)) {
-        continue; // Contact's scroll distance, text stretch and cue were removed.
-      }
       assert.equal(after.get(selector), declaration, `Original desktop CSS changed: ${cssFile} ${selector}`);
       cssDeclarations++;
     }
@@ -1133,29 +1131,47 @@ async function flush(p) { await new Promise((resolve) => setTimeout(resolve, 0))
   check(desktopKeepsake.getAttribute('aria-pressed') === 'true', 'Original desktop keyboard selection preserved');
   desktopWho.pointer(label(desktopWho, '.site-nav'), 'pointerdown', { pointerType: 'mouse' });
   check(desktopKeepsake.getAttribute('aria-pressed') === 'false', 'Desktop outside dismissal restored');
+  check([...desktopWho.d.querySelectorAll('.who-keepsake img')].every((image) =>
+    fs.existsSync(path.join(root, image.getAttribute('src')))) &&
+    fs.existsSync(path.join(root, 'assets/whoIAm/ascii/silhouette.svg')),
+  'Renamed Who I Am artwork paths resolve');
   desktopWho.close();
 
   const desktopContact = page('contact.html', { width: 1512, height: 982 });
-  check(label(desktopContact, '.contact-menu .contact-submenu'), 'Desktop Contact submenu restored in original navigation');
-  check(desktopContact.w.getComputedStyle(label(desktopContact, '.contact-submenu')).visibility === 'hidden', 'Desktop Contact links start hidden');
-  check(label(desktopContact, '.contact-link').getAttribute('href') === '#contact-links', 'Desktop Contact trigger controls submenu');
-  desktopContact.click(label(desktopContact, '.contact-link'));
-  check(label(desktopContact, '.contact-link').getAttribute('aria-expanded') === 'true', 'Desktop Contact click opens submenu');
-  label(desktopContact, '.contact-menu').dispatchEvent(new desktopContact.w.Event('mouseleave'));
-  check(label(desktopContact, '.contact-link').getAttribute('aria-expanded') === 'false', 'Desktop Contact mouse leave dismisses submenu');
-  label(desktopContact, '.contact-submenu a').focus();
-  check(label(desktopContact, '.contact-link').getAttribute('aria-expanded') === 'true', 'Desktop Contact submenu remains keyboard accessible');
-  check(desktopContact.w.getComputedStyle(label(desktopContact, '.contact-intro')).lineHeight === '1.1', 'Desktop introduction typography restored');
-  check(desktopContact.w.getComputedStyle(desktopContact.d.body).minHeight === '100vh' &&
-    !desktopContact.d.body.hasAttribute('data-stretch-section') &&
-    !label(desktopContact, '.scroll-cue'),
-  'Desktop Contact has no artificial scroll distance or scroll cue');
-  desktopContact.w.scrollY = 500;
-  desktopContact.w.dispatchEvent(new desktopContact.w.Event('scroll'));
-  desktopContact.advance(32);
-  check([...desktopContact.d.querySelectorAll('.intro-row')].every((row) =>
-    !row.style.height && !row.style.getPropertyValue('--line-scale')),
-  'Desktop Contact introduction stays static on scroll');
+  check(label(desktopContact, '.contact-portrait').getAttribute('src') === 'assets/contact/emma.webp' &&
+    fs.existsSync(path.join(root, 'assets/contact/emma (1).svg')) &&
+    fs.existsSync(path.join(root, 'assets/contact/emma.webp')) && label(desktopContact, '.contact-morph'),
+  'Contact scroll scene uses the supplied ASCII portrait and a morph canvas');
+  check(desktopContact.d.querySelectorAll('.contact-links a').length === 4 &&
+    [...desktopContact.d.querySelectorAll('.contact-links a')].every((link) => link.typewriter) &&
+    !label(desktopContact, '.contact-submenu') &&
+    label(desktopContact, '.contact-link').getAttribute('href') === 'contact.html' &&
+    label(desktopContact, '.contact-link').getAttribute('aria-current') === 'page',
+  'Contact methods are real links below the copy, outside the selected navigation link');
+  const contactMethod = label(desktopContact, '.contact-links a');
+  check(desktopContact.w.getComputedStyle(contactMethod).textDecoration === 'underline' &&
+    desktopContact.w.getComputedStyle(contactMethod.querySelector('.typewriter-link__text')).textDecoration === 'underline' &&
+    desktopContact.w.getComputedStyle(contactMethod).whiteSpace === 'nowrap',
+  'Contact methods stay underlined and keep the typing cursor on one line');
+  desktopContact.pointer(contactMethod, 'mouseenter', { pointerType: 'mouse' });
+  check(contactMethod.classList.contains('is-typing') &&
+    contactMethod.querySelector('.typewriter-link__text').textContent === 'L',
+  'Contact methods type on hover');
+  desktopContact.pointer(contactMethod, 'mouseleave', { pointerType: 'mouse' });
+  check(!contactMethod.classList.contains('is-typing') &&
+    contactMethod.querySelector('.typewriter-link__text').textContent === 'LinkedIn',
+  'Contact method text restores after hover');
+  check(desktopContact.w.getComputedStyle(label(desktopContact, '.contact-stage')).position === 'sticky' &&
+    desktopContact.w.getComputedStyle(label(desktopContact, '.contact-portrait')).top === '40px' &&
+    desktopContact.w.getComputedStyle(label(desktopContact, '.contact-page .site-nav')).top === '80%' &&
+    desktopContact.w.getComputedStyle(label(desktopContact, '.contact-intro')).fontSize === '16px' &&
+    desktopContact.w.getComputedStyle(label(desktopContact, '.contact-intro')).textAlign === 'justify' &&
+    desktopContact.w.getComputedStyle(label(desktopContact, '.contact-intro')).textAlignLast === 'justify' &&
+    desktopContact.w.getComputedStyle(label(desktopContact, '.contact-intro')).textWrap === 'balance' &&
+    !label(desktopContact, '.intro-row, .intro-line') &&
+    desktopContact.w.getComputedStyle(label(desktopContact, '.contact-links a')).fontSize === '16px' &&
+    desktopContact.w.getComputedStyle(label(desktopContact, '.contact-links a')).fontWeight === '700',
+  'Desktop Contact holds its lower navigation and uses matching 16px copy and links');
   desktopContact.close();
 
   const hybrid = page('who-i-am.html', { width: 1512, height: 450, coarse: true, hover: true });
@@ -1166,18 +1182,24 @@ async function flush(p) { await new Promise((resolve) => setTimeout(resolve, 0))
 
   const contact = page('contact.html', { saved: { 'emma-motion-paused': 'true' } });
   check(!contact.w.siteMotion.stopped && !contact.d.querySelector('.motion-toggle'), 'Old pause setting has no effect on Contact');
-  check(contact.d.querySelectorAll('.contact-submenu a').length === 4, 'Mobile Contact reuses the four desktop submenu links');
-  check(label(contact, '.contact-link').getAttribute('href') === '#contact-links', 'Mobile Contact uses the desktop menu trigger');
-  contact.click(label(contact, '.contact-link'));
-  check(label(contact, '.contact-link').getAttribute('aria-expanded') === 'true' && contact.w.getComputedStyle(label(contact, '.contact-submenu')).visibility === 'visible', 'Touch opens Contact submenu');
-  contact.click(label(contact, '.contact-link'));
-  check(label(contact, '.contact-link').getAttribute('aria-expanded') === 'false', 'Second touch closes Contact submenu');
-  contact.click(label(contact, '.contact-link'));
-  contact.d.dispatchEvent(new contact.w.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
-  check(label(contact, '.contact-link').getAttribute('aria-expanded') === 'false' && contact.d.activeElement === label(contact, '.contact-link'), 'Contact Escape dismissal restores focus');
-  contact.click(label(contact, '.contact-link'));
-  contact.pointer(label(contact, '.contact-intro'), 'pointerdown');
-  check(label(contact, '.contact-link').getAttribute('aria-expanded') === 'false', 'Outside tap dismisses Contact submenu');
+  check(contact.d.querySelectorAll('.contact-links a').length === 4 &&
+    contact.w.getComputedStyle(label(contact, '.contact-page .site-nav')).position === 'fixed' &&
+    contact.w.getComputedStyle(label(contact, '.contact-stage')).position === 'relative',
+  'Compact Contact keeps its top navigation visible and its copy in document flow');
+  check(!label(contact, '.intro-row, .intro-line') &&
+    contact.w.getComputedStyle(label(contact, '.contact-intro')).fontSize === '16px' &&
+    contact.w.getComputedStyle(label(contact, '.contact-intro')).textAlignLast === 'left' &&
+    contact.w.getComputedStyle(label(contact, '.contact-links')).flexWrap === 'wrap' &&
+    contact.w.getComputedStyle(label(contact, '.contact-links a')).fontSize === '16px' &&
+    contact.w.getComputedStyle(label(contact, '.contact-links a')).minWidth === '44px' &&
+    contact.w.getComputedStyle(label(contact, '.contact-links a')).minHeight === '44px',
+  'Compact Contact copy wraps at 16px and contact links wrap with touch targets');
+  const compactContactMethod = label(contact, '.contact-links a');
+  contact.pointer(compactContactMethod, 'pointerenter', { pointerType: 'mouse' });
+  contact.advance(0);
+  check(compactContactMethod.classList.contains('is-typing'),
+  'Compact Contact methods use the shared hover typewriter');
+  contact.pointer(compactContactMethod, 'pointerleave', { pointerType: 'mouse' });
   for (const p of [contact]) {
     check(!p.errors.length, 'No DOM runtime errors');
     p.close();
