@@ -7,6 +7,7 @@
   const content = document.querySelector('.contact-content');
   const intro = content.querySelector('.contact-intro');
   const links = document.querySelector('.contact-links');
+  const nav = document.querySelector('.site-nav');
   const contactLinks = [...links.querySelectorAll('a')];
   const compact = window.siteLayout;
   const motion = window.siteMotion;
@@ -157,6 +158,10 @@
     page.classList.remove('has-contact-motion');
     page.classList.add('is-settled');
     links.inert = false;
+    stage.style.removeProperty('height');
+    stage.style.removeProperty('--contact-mobile-nav-bottom');
+    stage.style.removeProperty('--contact-mobile-viewport-height');
+    content.style.removeProperty('top');
     portrait.style.opacity = '';
     content.style.opacity = '';
     canvas.style.opacity = '0';
@@ -167,6 +172,26 @@
     if (!portrait.complete || !portrait.naturalWidth) return;
     try {
       contactLinks.forEach((link) => link.typewriter?.reset());
+      if (compact.matches) {
+        const viewportHeight = window.innerHeight;
+        const navBottom = nav.getBoundingClientRect().bottom;
+        const contentHeight = content.getBoundingClientRect().height;
+        const centeredTop = navBottom + (viewportHeight - navBottom - contentHeight) / 2;
+        const settledTop = Math.max(navBottom + 12, centeredTop);
+        const revealDistance = 160;
+        const contentTop = revealDistance + settledTop;
+        const stageHeight = Math.max(viewportHeight + revealDistance,
+          contentTop + contentHeight + 8);
+        stage.style.height = `${stageHeight}px`;
+        stage.style.setProperty('--contact-mobile-nav-bottom', `${navBottom}px`);
+        stage.style.setProperty('--contact-mobile-viewport-height', `${viewportHeight}px`);
+        content.style.top = `${contentTop}px`;
+      } else {
+        stage.style.removeProperty('height');
+        stage.style.removeProperty('--contact-mobile-nav-bottom');
+        stage.style.removeProperty('--contact-mobile-viewport-height');
+        content.style.removeProperty('top');
+      }
       const stageRect = stage.getBoundingClientRect();
       const portraitRect = portrait.getBoundingClientRect();
       const width = Math.ceil(stageRect.width);
@@ -229,10 +254,7 @@
   });
   document.fonts?.ready.then(requestRebuild);
 
-  if (portrait.decode) portrait.decode().then(requestRebuild).catch(fallback);
-  else if (portrait.complete && portrait.naturalWidth) requestRebuild();
-  else {
-    portrait.addEventListener('load', requestRebuild, { once: true });
-    portrait.addEventListener('error', fallback, { once: true });
-  }
+  portrait.addEventListener('load', requestRebuild);
+  portrait.addEventListener('error', fallback);
+  if (portrait.complete && portrait.naturalWidth) requestRebuild();
 })();

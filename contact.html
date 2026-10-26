@@ -16,7 +16,10 @@
         <div class="contact-stage">
           <h1 class="visually-hidden">Contact</h1>
           <div class="contact-art">
-            <img class="contact-portrait" src="assets/contact/emma.webp" alt="ASCII portrait of Emma Xu" draggable="false">
+            <picture>
+              <source media="(max-width: 640px), (hover: none) and (pointer: coarse)" srcset="assets/contact/emma_mobile.webp" type="image/webp">
+              <img class="contact-portrait" src="assets/contact/emma.webp" alt="ASCII portrait of Emma Xu" draggable="false">
+            </picture>
             <canvas class="contact-morph" aria-hidden="true"></canvas>
           </div>
           <div class="contact-content">

@@ -1183,9 +1183,12 @@ async function flush(p) { await new Promise((resolve) => setTimeout(resolve, 0))
   const contact = page('contact.html', { saved: { 'emma-motion-paused': 'true' } });
   check(!contact.w.siteMotion.stopped && !contact.d.querySelector('.motion-toggle'), 'Old pause setting has no effect on Contact');
   check(contact.d.querySelectorAll('.contact-links a').length === 4 &&
+    label(contact, '.contact-art source').getAttribute('srcset') === 'assets/contact/emma_mobile.webp' &&
+    fs.existsSync(path.join(root, 'assets/contact/emma_mobile.svg')) &&
+    fs.existsSync(path.join(root, 'assets/contact/emma_mobile.webp')) &&
     contact.w.getComputedStyle(label(contact, '.contact-page .site-nav')).position === 'fixed' &&
     contact.w.getComputedStyle(label(contact, '.contact-stage')).position === 'relative',
-  'Compact Contact keeps its top navigation visible and its copy in document flow');
+  'Compact Contact uses the supplied portrait and keeps its top navigation visible');
   check(!label(contact, '.intro-row, .intro-line') &&
     contact.w.getComputedStyle(label(contact, '.contact-intro')).fontSize === '16px' &&
     contact.w.getComputedStyle(label(contact, '.contact-intro')).textAlignLast === 'left' &&

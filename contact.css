@@ -4,7 +4,11 @@
   --contact-background: #130d08;
 }
 * { box-sizing: border-box; }
-html { background: var(--contact-background); }
+html {
+  background: var(--contact-background);
+  scrollbar-width: none;
+}
+html::-webkit-scrollbar { display: none; }
 .contact-page {
   margin: 0;
   overflow-x: hidden;
@@ -134,12 +138,12 @@ html { background: var(--contact-background); }
     top: auto;
     height: auto;
     min-height: calc(100svh + 160px);
-    display: flex;
-    flex-direction: column;
     overflow: visible;
-    padding-top: calc(88px + env(safe-area-inset-top));
   }
-  .contact-page:not(.has-contact-motion) .contact-stage { min-height: 100svh; }
+  .contact-page:not(.has-contact-motion) .contact-stage {
+    min-height: 100svh;
+    padding-top: calc(76px + env(safe-area-inset-top));
+  }
   .contact-page .site-nav {
     position: fixed;
     top: 0;
@@ -154,26 +158,33 @@ html { background: var(--contact-background); }
   }
   .contact-page .site-nav:has(.page-menu.is-open) { padding-bottom: 96px; }
   .contact-art {
-    position: static;
+    position: absolute;
   }
   .contact-portrait {
-    position: relative;
-    top: auto;
-    left: auto;
-    width: min(calc(100% - 32px), 540px);
+    position: absolute;
+    top: calc((var(--contact-mobile-viewport-height, 100svh) + var(--contact-mobile-nav-bottom, 64px)) / 2);
+    left: 50%;
+    width: min(calc(100vw - 48px), 540px,
+      calc((var(--contact-mobile-viewport-height, 100svh) - var(--contact-mobile-nav-bottom, 64px) - 48px) * 1268 / 1478));
     max-width: none;
-    margin: 8svh auto 0;
-    transform: none;
+    margin: 0;
+    transform: translate(-50%, -50%);
   }
   .contact-content {
+    position: absolute;
+    top: calc(100svh + 160px);
+    bottom: auto;
+    left: 50%;
+    width: min(calc(100% - 48px), 64ch);
+    margin: 0;
+    text-align: left;
+    transform: translateX(-50%);
+  }
+  .contact-page:not(.has-contact-motion) .contact-content {
     position: relative;
     top: auto;
-    bottom: auto;
     left: auto;
-    width: min(calc(100% - 48px), 64ch);
-    margin: auto auto 0;
-    padding-top: clamp(80px, 13svh, 130px);
-    text-align: left;
+    margin: 0 auto;
     transform: none;
   }
   .contact-intro {
