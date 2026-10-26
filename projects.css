@@ -314,6 +314,11 @@
   text-underline-offset: 3px;
 }
 
+.projects-back.typewriter-link {
+  text-align: left;
+  white-space: nowrap;
+}
+
 .projects-title {
   display: inline-block;
   margin: 0;

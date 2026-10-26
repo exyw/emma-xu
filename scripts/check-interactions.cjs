@@ -778,6 +778,24 @@ async function flush(p) { await new Promise((resolve) => setTimeout(resolve, 0))
   const hover = page('projects.html', { hash: '#dk', width: 1512, height: 982 });
   const hoverArt = label(hover, '.projects-target');
   const hoverToggle = label(hover, '.projects-original-toggle');
+  const hoverBack = label(hover, '.projects-back');
+  check(Boolean(hoverBack.typewriter) && hoverBack.getAttribute('aria-label') === '← All projects' &&
+    Boolean(hoverBack.style.width) && hover.w.getComputedStyle(hoverBack).textAlign === 'left' &&
+    hover.w.getComputedStyle(hoverBack).whiteSpace === 'nowrap',
+  'All projects uses the shared typewriter with a stable desktop width and accessible label');
+  const backWidth = hoverBack.style.width;
+  hover.pointer(hoverBack, 'mouseenter', { pointerType: 'mouse' });
+  check(hoverBack.classList.contains('is-typing') && hoverBack.textContent === '←' &&
+    hoverBack.style.width === backWidth && hoverBack.getAttribute('aria-label') === '← All projects',
+  'All projects types on desktop hover without shifting or changing its accessible name');
+  hover.pointer(hoverBack, 'mouseleave', { pointerType: 'mouse' });
+  check(!hoverBack.classList.contains('is-typing') && hoverBack.textContent === '← All projects',
+  'All projects restores its full label when hover ends');
+  hoverBack.focus();
+  check(hoverBack.classList.contains('is-typing'), 'All projects also types on keyboard focus');
+  hoverBack.blur();
+  check(!hoverBack.classList.contains('is-typing') && hoverBack.textContent === '← All projects',
+  'All projects restores its label after keyboard focus');
   check(Boolean(hoverToggle.typewriter) &&
     hover.w.getComputedStyle(hoverToggle).fontWeight === '700' &&
     hover.w.getComputedStyle(hoverToggle).textDecoration === 'none',

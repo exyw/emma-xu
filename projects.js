@@ -22,6 +22,13 @@
   const announcement = document.querySelector('.project-announcement');
   const main = document.querySelector('.projects-main');
   const mobileNav = window.siteLayout;
+  let backWriterCompact = null;
+  function syncBackTypewriter() {
+    if (heading.hidden || (back.typewriter && backWriterCompact === mobileNav.matches)) return;
+    back.typewriter?.destroy();
+    window.attachTypewriter(back);
+    backWriterCompact = mobileNav.matches;
+  }
   function setPortraitOverview(value) {
     document.body.classList.toggle('portrait-overview-page', value);
     nav.dispatchEvent(new Event('site-nav-layout'));
@@ -963,6 +970,7 @@
     targetHost.style.opacity = "1";
     morphCanvas.hidden = true;
     heading.hidden = false;
+    syncBackTypewriter();
     if (renderedProjectId !== active.id) renderCopy(active);
     stage.setAttribute("aria-label", `${active.title} ASCII artwork`);
     stage.removeAttribute("aria-busy");
@@ -996,6 +1004,7 @@
     targetHost.hidden = true;
     morphCanvas.hidden = true;
     heading.hidden = true;
+    back.typewriter?.reset();
     copy.hidden = true;
     pagination.hidden = true;
     overviewNavigation.hidden = !mobileNav.matches;
@@ -1276,6 +1285,7 @@
     const projectChanged = active?.id !== project.id;
     active = project;
     heading.hidden = false;
+    syncBackTypewriter();
     setPortraitOverview(false);
     renderCopy(project);
     experience.classList.add("is-detail");
@@ -1462,6 +1472,7 @@
       copy.hidden = !mobileNav.matches && !copy.childElementCount;
       metaText.textContent = mobileNav.matches ? active.meta || '' : (active.meta || '').replace(/ · /g, '\u00a0·\u00a0');
     }
+    syncBackTypewriter();
     updateTransitionView();
     updateGeometry();
     positionDetailContent();
