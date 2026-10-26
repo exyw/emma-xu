@@ -159,6 +159,25 @@ body {
 }
 .overview-navigation, .project-pagination { display: none; }
 
+/* The Home introduction moves the real links into the Projects overview positions. */
+.home-page.is-project-chosen .site-nav { z-index: 4; }
+body.home-page.is-project-chosen .site-nav .page-menu > a[href="projects.html"] {
+  visibility: visible; opacity: 1; pointer-events: auto; font-weight: bold;
+  transform: translateY(var(--intro-select-y, 0px));
+  transition: transform 600ms cubic-bezier(.22,.72,.24,1), opacity 300ms ease;
+}
+body.home-page.is-project-chosen .site-nav .page-menu > a[href="index.html"],
+body.home-page.is-project-chosen .site-nav .page-menu > a[href="who-i-am.html"] {
+  visibility: hidden; opacity: 0; pointer-events: none;
+  transform: translateY(-8px);
+  transition: opacity 300ms ease, visibility 0s linear 300ms, transform 300ms ease;
+}
+body.home-page.is-splitting .site-nav .page-menu > a[href="projects.html"],
+body.home-page.is-splitting .site-nav .contact-link {
+  transform: translate(var(--intro-x, 0px), var(--intro-y, 0px));
+  transition: transform 2100ms cubic-bezier(.22,.7,.16,1), opacity 500ms ease;
+}
+
 @media (max-width: 640px), (hover: none) and (pointer: coarse) {
   .site-nav, .site-nav--portrait, .contact-page .site-nav {
     position: relative; top: auto; bottom: auto; left: auto; z-index: 10;
@@ -205,10 +224,10 @@ body {
   .home-page .site-nav:has(.page-menu.is-open) { padding-bottom: 10px; }
   .home-page .site-nav:not(.is-ready) { visibility: hidden; pointer-events: none; }
   .home-page:not(.is-revealed) .site-nav {
-    z-index: 1; visibility: visible; pointer-events: none;
+    z-index: 1; visibility: visible; pointer-events: auto;
   }
   .home-page:not(.is-revealed) .site-nav a:not([href="index.html"]) { visibility: hidden; }
-  .home-page:not(.is-revealed) .site-nav a[href="index.html"] { pointer-events: none; }
+  .home-page:not(.is-revealed) .site-nav a[href="index.html"] { pointer-events: auto; }
   .home-page .site-nav a { padding: 12px 6px; font-size: 12px; }
   .home-page .site-nav .contact-link { margin-left: 0; }
   .home-page .site-nav .page-menu {
@@ -220,6 +239,28 @@ body {
   }
   .home-page .site-nav .page-menu > a:first-child .typewriter-link__text { transform: translateY(10px); }
   .home-page .site-nav .page-menu > a:last-child .typewriter-link__text { transform: translateY(-10px); }
+  body.home-page.is-project-chosen .site-nav .contact-link {
+    opacity: 0; visibility: hidden; pointer-events: none;
+    transition: opacity 300ms ease, visibility 0s linear 300ms;
+  }
+  body.home-page.is-splitting .site-nav .contact-link {
+    opacity: 0; visibility: hidden; pointer-events: none;
+  }
+  body.home-page.is-splitting .site-nav .page-menu > a[href="projects.html"] {
+    padding-right: 4px; padding-left: 4px;
+    transition: transform 2100ms cubic-bezier(.22,.7,.16,1),
+      padding 2100ms cubic-bezier(.22,.7,.16,1);
+  }
+  body.home-page.is-splitting .site-nav .page-menu > a[href="who-i-am.html"] {
+    visibility: visible; opacity: 1; pointer-events: auto;
+    transform: translate(var(--intro-x, 0px), var(--intro-y, 0px));
+    padding-right: 4px; padding-left: 4px; text-align: left;
+    transition: transform 2100ms cubic-bezier(.22,.7,.16,1),
+      opacity 650ms ease, padding 2100ms cubic-bezier(.22,.7,.16,1);
+  }
+  body.home-page.is-splitting .site-nav .page-menu > a[href="who-i-am.html"]::after {
+    content: ' →';
+  }
   .overview-navigation {
     position: relative; z-index: 2; display: flex; flex-wrap: wrap;
     justify-content: center; align-items: center; gap: 4px 20px;
@@ -318,4 +359,16 @@ body {
     animation: cursor-blink 1000ms steps(1) infinite;
   }
   .project-pagination:not([hidden]) { display: grid; }
+}
+
+@media (max-width: 340px) {
+  body.home-page.is-splitting .site-nav .page-menu > a[href="who-i-am.html"] {
+    padding: 4px;
+    line-height: 18px;
+  }
+  body.home-page.is-splitting .site-nav .page-menu > a[href="who-i-am.html"]::after {
+    display: block;
+    content: '→';
+    line-height: 18px;
+  }
 }

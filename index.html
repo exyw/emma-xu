@@ -18,16 +18,20 @@
     </nav>
     <main class="home-main">
       <h1 class="visually-hidden">Emma Xu</h1>
-      <div class="home-artwork" tabindex="0" role="group" aria-label="Interactive spotlight. Tap a position or use the arrow keys to move the light.">
-        <div class="prelude" aria-hidden="true"><div class="prelude-title">Emma Xu</div><div class="prelude-mask"></div></div>
+      <div class="home-artwork" tabindex="0" role="group" aria-label="Spotlight. Tap to continue to Projects, or use the arrow keys to move the light.">
+        <div class="prelude"><button class="prelude-title" type="button" aria-label="Emma Xu, continue to Projects">Emma Xu</button><div class="prelude-mask" aria-hidden="true"></div></div>
       </div>
-      <div class="spotlight-tools">
-        <button class="spotlight-reveal" type="button">Reveal</button>
-        <button class="spotlight-replay" type="button" hidden>Replay spotlight</button>
+      <div class="home-projects-preview" aria-hidden="true">
+        <div class="home-projects-preview__figure">
+          <canvas class="home-projects-preview__canvas"></canvas>
+          <div class="home-projects-preview__slots"></div>
+        </div>
       </div>
     </main>
     <script src="experience.js"></script>
     <script src="navigation.js"></script>
+    <script src="projects-config.js"></script>
+    <script src="projects-entry-data.js"></script>
     <script src="home.js"></script>
   </body>
 </html>

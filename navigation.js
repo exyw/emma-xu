@@ -203,6 +203,12 @@
     const trigger = menu.querySelector('a[href="index.html"]');
     const selected = menu.querySelector('a.selected');
     const contact = nav.querySelector('.contact-link');
+    nav.addEventListener('click', (event) => {
+      if (document.body.classList.contains('home-page') || event.defaultPrevented ||
+          event.button !== 0 || event.metaKey || event.ctrlKey || event.altKey || event.shiftKey ||
+          !event.target.closest('a[href="index.html"]')) return;
+      try { sessionStorage.setItem('emma-home-revealed', 'false'); } catch (_) {}
+    });
     menu.id = `page-destinations-${index}`;
     if (nav.classList.contains('site-nav--portrait')) contact.id ||= `contact-destination-${index}`;
     let open = false;
@@ -270,6 +276,7 @@
       setOpen(false);
     }
     nav.addEventListener('site-nav-dismiss', () => setOpen(false));
+    nav.addEventListener('site-nav-intro-open', () => setOpen(true));
     nav.addEventListener('site-nav-layout', configureLayout);
     motion.subscribe(() => {
       if (sequenceRequested) {

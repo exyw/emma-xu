@@ -9,8 +9,12 @@ const root = path.resolve(__dirname, '..');
 
 function page(file, { reduced = false, width = 390, height = 844, hash = '', saved = {}, coarse = width <= 1000, hover = width > 1000 } = {}) {
   const errors = [];
+  const navigations = [];
   const virtualConsole = new VirtualConsole();
-  virtualConsole.on('jsdomError', (error) => errors.push(error));
+  virtualConsole.on('jsdomError', (error) => {
+    if (error.message.includes('Not implemented: navigation to another Document')) navigations.push(error);
+    else errors.push(error);
+  });
   const dom = new JSDOM(fs.readFileSync(path.join(root, file), 'utf8'), {
     url: `https://portfolio.example/${file}${hash}`, runScripts: 'outside-only', pretendToBeVisual: true, virtualConsole,
   });
@@ -111,7 +115,7 @@ function page(file, { reduced = false, width = 390, height = 844, hash = '', sav
     return event;
   }
   function hide(value) { hidden = value; w.document.dispatchEvent(new w.Event('visibilitychange')); }
-  return { w, d: w.document, advance, pointer, click, swipe, wheel, hide, media, observers, tasks, errors, close: () => { assert.equal(errors.length, 0, errors.map((e) => e.message).join('\n')); dom.window.close(); } };
+  return { w, d: w.document, advance, pointer, click, swipe, wheel, hide, media, observers, tasks, errors, navigations, close: () => { assert.equal(errors.length, 0, errors.map((e) => e.message).join('\n')); dom.window.close(); } };
 }
 const label = (p, selector) => p.d.querySelector(selector);
 async function flush(p) { await new Promise((resolve) => setTimeout(resolve, 0)); await new Promise((resolve) => setTimeout(resolve, 0)); p.advance(32); }
@@ -139,7 +143,8 @@ async function flush(p) { await new Promise((resolve) => setTimeout(resolve, 0))
     const after = desktopRules(fs.readFileSync(path.join(root, cssFile), 'utf8'));
     for (const [selector, declaration] of before) {
       if (selector === '.mobile-scroll' || selector === '.project-choice__original' || selector === '.project-choice__ascii' ||
-          selector === '.project-choice.is-preview .project-choice__original') continue; // Retired overview preview.
+          selector === '.project-choice.is-preview .project-choice__original' ||
+          selector === '.prelude-title') continue; // Retired overview preview; the masked name is now a button.
       assert.equal(after.get(selector), declaration, `Original desktop CSS changed: ${cssFile} ${selector}`);
       cssDeclarations++;
     }
@@ -147,9 +152,11 @@ async function flush(p) { await new Promise((resolve) => setTimeout(resolve, 0))
   console.log(`Desktop CSS baseline matches ${cssDeclarations} original rules.`);
   const home = page('index.html', { saved: { 'emma-motion-paused': 'true' } });
   const area = label(home, '.home-artwork');
-  check(!label(home, '.spotlight-reveal').hidden, 'Home has Reveal before interaction');
-  check(!label(home, '.site-nav').classList.contains('is-ready') && label(home, '.site-nav').inert &&
-    label(home, '.site-nav').getAttribute('aria-hidden') === 'true' &&
+  const disclosure = label(home, '.page-menu a[href="index.html"]');
+  check(!label(home, '.spotlight-tools') && disclosure.getAttribute('aria-label') === 'Emma Xu, continue to Projects',
+    'Home has no bottom controls and gives the selected name an accessible entry action');
+  check(!label(home, '.site-nav').classList.contains('is-ready') && !label(home, '.site-nav').inert &&
+    !label(home, '.site-nav').hasAttribute('aria-hidden') &&
     label(home, '.prelude-title').hidden &&
     home.w.getComputedStyle(label(home, '.prelude-title')).display === 'none' &&
     home.w.getComputedStyle(label(home, '.page-menu a[href="index.html"]')).visibility === 'visible' &&
@@ -180,40 +187,45 @@ async function flush(p) { await new Promise((resolve) => setTimeout(resolve, 0))
   check(home.w.getComputedStyle(label(home, '.page-menu a[href="projects.html"] .typewriter-link__text')).transform === 'translateY(10px)' &&
     home.w.getComputedStyle(label(home, '.page-menu a[href="who-i-am.html"] .typewriter-link__text')).transform === 'translateY(-10px)',
   'Mobile Home labels move closer together without shrinking their link targets');
+  const spotlightX = label(home, '.prelude-mask').style.getPropertyValue('--cursor-x');
   home.swipe(area, 100);
+  check(!home.d.body.classList.contains('is-revealed') &&
+    label(home, '.prelude-mask').style.getPropertyValue('--cursor-x') === spotlightX,
+    'Dragging the mobile spotlight neither moves the light nor dismisses it');
   home.click(area);
-  check(!home.d.body.classList.contains('is-revealed'), 'Dragging/releasing artwork cannot reveal Home');
-  home.click(label(home, '.spotlight-reveal'));
   check(home.d.body.classList.contains('is-revealed') && !label(home, '.site-nav').classList.contains('is-ready'),
-  'Reveal begins dismissing spotlight before showing menu');
+  'Tapping the mobile spotlight starts dismissal before showing the menu');
   check(home.w.getComputedStyle(label(home, '.prelude-title')).display === 'none' &&
     home.w.getComputedStyle(label(home, '.site-nav')).visibility === 'hidden',
     'Single Emma Xu label waits for the menu reveal during the spotlight fade');
   home.advance(350);
   check(label(home, '.site-nav').classList.contains('is-ready') && !label(home, '.site-nav').inert,
   'Centered menu appears once spotlight has gone');
-  home.click(label(home, '.spotlight-replay'));
-  check(!home.d.body.classList.contains('is-revealed') && label(home, '.site-nav').inert,
-  'Replay restores mask and hides the menu');
-  home.click(label(home, '.spotlight-reveal'));
+  home.click(disclosure);
+  check(!home.d.body.classList.contains('is-revealed') && !label(home, '.site-nav').inert,
+  'Emma Xu restores the mask and leaves its selected link accessible');
+  home.click(disclosure);
   home.advance(350);
-  const disclosure = label(home, '.page-menu a[href="index.html"]');
-  home.click(disclosure);
-  check(disclosure.getAttribute('aria-expanded') === 'true', 'Disclosure opens');
+  check(disclosure.getAttribute('aria-expanded') === 'true' &&
+    home.d.body.classList.contains('is-intro-opening'),
+  'Spotlight dismissal automatically opens Projects and Who I am');
   check([...home.d.querySelectorAll('.page-menu a')].every((a) => a.getAttribute('aria-label')), 'Typing links retain complete accessible labels');
-  home.advance(100);
-  home.click(disclosure); home.click(disclosure);
   home.d.dispatchEvent(new home.w.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
-  check(disclosure.getAttribute('aria-expanded') === 'false' && home.d.activeElement === disclosure, 'Escape dismisses and restores focus');
+  check(disclosure.getAttribute('aria-expanded') === 'false' &&
+    !home.d.body.classList.contains('is-intro-opening') &&
+    home.d.activeElement === disclosure,
+  'Escape cancels the Home introduction and focuses Emma Xu');
   home.click(disclosure);
-  home.pointer(area, 'pointerdown');
-  check(disclosure.getAttribute('aria-expanded') === 'false', 'Outside pointer dismisses menu');
+  check(!home.d.body.classList.contains('is-revealed'), 'Emma Xu restarts the spotlight after cancellation');
   check(!home.d.querySelector('.motion-toggle') && !home.w.siteMotion.stopped, 'Pause UI and stored pause functionality removed');
   check(!home.d.querySelector('.mobile-navigation, .menu-disclosure'), 'Mobile reuses desktop text navigation without duplicate dropdown');
-  const revealStyle = home.w.getComputedStyle(label(home, '.spotlight-reveal'));
-  check(revealStyle.fontSize === '12px' && revealStyle.borderTopWidth === '0px' && revealStyle.backgroundColor === 'rgba(0, 0, 0, 0)', 'Reveal is small text without a border or background');
+  check(home.w.getComputedStyle(disclosure).minHeight === '44px' &&
+    home.w.getComputedStyle(disclosure).pointerEvents === 'auto' &&
+    !label(home, '.spotlight-reveal, .spotlight-replay'),
+  'Selected Emma Xu remains a touch-sized action without bottom controls');
   check(home.w.getComputedStyle(label(home, '.prelude-mask')).getPropertyValue('--reveal-radius').includes('64px'), 'Smaller spotlight applies only to mobile');
   home.click(disclosure);
+  home.advance(350);
   let destinationActivated = false;
   label(home, '.page-menu a[href="projects.html"]').addEventListener('click', (event) => { destinationActivated = true; event.preventDefault(); });
   home.click(label(home, '.page-menu a[href="projects.html"]'));
@@ -222,6 +234,39 @@ async function flush(p) { await new Promise((resolve) => setTimeout(resolve, 0))
   home.advance(1000);
   check(home.tasks.size === 0, 'Hidden Home has no queued motion or typing');
   home.close();
+
+  const autoHome = page('index.html', { reduced: true });
+  autoHome.click(label(autoHome, '.page-menu a[href="index.html"]'));
+  check(autoHome.navigations.length === 1 &&
+    autoHome.w.sessionStorage.getItem('emma-home-revealed') === 'true',
+  'Reduced motion Emma Xu entry opens the unchanged Projects page immediately');
+  autoHome.close();
+
+  const introHome = page('index.html');
+  for (const href of ['projects.html', 'who-i-am.html']) {
+    label(introHome, `.page-menu a[href="${href}"]`).typewriter.playOnce = (done) => done();
+  }
+  introHome.click(label(introHome, '.page-menu a[href="index.html"]'));
+  introHome.advance(650);
+  check(introHome.d.body.classList.contains('is-project-chosen') &&
+    introHome.w.getComputedStyle(label(introHome, '.page-menu a[href="projects.html"]')).fontWeight === 'bold' &&
+    !introHome.d.body.classList.contains('is-splitting'),
+  'Projects becomes the selected Home link before the navigation splits');
+  introHome.advance(600);
+  check(introHome.d.body.classList.contains('is-splitting') &&
+    !introHome.d.body.classList.contains('is-assembling'),
+  'The navigation starts splitting before silhouette assembly');
+  introHome.w.Path2D = class { constructor(path) { this.path = path; } };
+  introHome.advance(280);
+  check(introHome.d.body.classList.contains('is-assembling') &&
+    introHome.d.activeElement !== label(introHome, '.page-menu a[href="projects.html"]'),
+    'Silhouette assembly does not move focus onto the animated Projects link');
+  introHome.d.dispatchEvent(new introHome.w.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+  introHome.advance(7000);
+  check(!introHome.d.body.classList.contains('is-splitting') &&
+    introHome.navigations.length === 0,
+  'Escape cancels the split and its pending automatic navigation');
+  introHome.close();
 
   const typeHome = page('index.html', { saved: { 'emma-home-revealed': 'true' } });
   const typeTrigger = label(typeHome, '.page-menu a[href="index.html"]');
@@ -232,8 +277,12 @@ async function flush(p) { await new Promise((resolve) => setTimeout(resolve, 0))
     link.typewriter.playOnce = (done) => { typeOrder.push(href); playOnce(done); };
   }
   typeHome.click(typeTrigger);
-  typeHome.advance(220);
-  check(typeOrder.length === 1 && typeOrder[0] === 'projects.html', 'Mobile Home types Projects first after revealing both links');
+  check(!typeHome.d.body.classList.contains('is-revealed') &&
+    typeTrigger.getAttribute('aria-label') === 'Emma Xu, continue to Projects',
+    'Selecting Emma Xu on revealed Home restarts the spotlight');
+  typeHome.click(typeTrigger);
+  typeHome.advance(350);
+  check(typeOrder.length === 1 && typeOrder[0] === 'projects.html', 'Mobile Home types Projects first after spotlight dismissal');
   const cursorRules = [...typeHome.d.styleSheets].flatMap((sheet) => [...sheet.cssRules]);
   const cursorOnLink = cursorRules.find((rule) => rule.selectorText === '.site-nav .typewriter-link.is-typing::after');
   const cursorOnText = cursorRules.find((rule) => rule.selectorText === '.site-nav .typewriter-link.is-typing .typewriter-link__text::after');
@@ -241,21 +290,13 @@ async function flush(p) { await new Promise((resolve) => setTimeout(resolve, 0))
     cursorOnLink?.style.content === 'none' && cursorOnText?.style.display === 'inline-block' &&
     !cursorOnText?.style.position,
   'Compact navigation typing cursor is inline with the text instead of positioned on the link');
-  typeHome.advance(6000);
-  check(typeOrder.slice(0, 3).join(',') === 'projects.html,who-i-am.html,projects.html',
-    'Mobile Home types Who I am next and repeats the sequence while open');
   typeHome.click(typeTrigger);
-  const stoppedCount = typeOrder.length;
-  typeHome.advance(6000);
-  check(typeTrigger.getAttribute('aria-expanded') === 'false' && typeOrder.length === stoppedCount,
-    'Second Emma Xu tap closes menu and stops its typing sequence');
-  typeHome.click(typeTrigger);
-  typeHome.advance(220);
-  typeHome.click(label(typeHome, '.spotlight-replay'));
-  const replayCount = typeOrder.length;
+  const restartCount = typeOrder.length;
   typeHome.advance(3000);
-  check(label(typeHome, '.site-nav').inert && typeTrigger.getAttribute('aria-expanded') === 'false' &&
-    typeOrder.length === replayCount, 'Replay hides and closes the menu and cancels typing');
+  check(!typeHome.d.body.classList.contains('is-revealed') &&
+    typeTrigger.getAttribute('aria-expanded') === 'false' &&
+    typeOrder.length === restartCount,
+    'Emma Xu restart closes the menu and cancels typing');
   typeHome.close();
 
   const stillHome = page('index.html', { reduced: true, saved: { 'emma-home-revealed': 'true' } });
@@ -265,7 +306,7 @@ async function flush(p) { await new Promise((resolve) => setTimeout(resolve, 0))
     'Reduced motion keeps Home menu labels complete without typing');
   stillHome.close();
   const stillSpotlight = page('index.html', { reduced: true });
-  stillSpotlight.click(label(stillSpotlight, '.spotlight-reveal'));
+  stillSpotlight.click(label(stillSpotlight, '.page-menu a[href="index.html"]'));
   check(label(stillSpotlight, '.site-nav').classList.contains('is-ready'),
     'Reduced motion shows centered menu immediately when spotlight disappears');
   stillSpotlight.close();
@@ -393,9 +434,8 @@ async function flush(p) { await new Promise((resolve) => setTimeout(resolve, 0))
   check(swipeWho.errors.length === 0 && swipeWho.w.location.pathname.endsWith('/who-i-am.html'),
     'Leftward swipe on Who I Am overview is ignored');
   swipeWho.swipe(label(swipeWho, '.who-main'), 100);
-  check(swipeWho.errors.some((error) => error.message.includes('navigation')),
+  check(swipeWho.navigations.length === 1,
     'Rightward swipe on Who I Am overview attempts the Projects navigation');
-  swipeWho.errors.length = 0; // jsdom reports cross-page navigation as unimplemented.
   swipeWho.close();
 
   const swipeProjects = page('projects.html', { reduced: true });
@@ -403,9 +443,8 @@ async function flush(p) { await new Promise((resolve) => setTimeout(resolve, 0))
   check(swipeProjects.errors.length === 0 && swipeProjects.w.location.pathname.endsWith('/projects.html'),
     'Rightward swipe on Projects overview is ignored');
   swipeProjects.swipe(label(swipeProjects, '.projects-main'), -100);
-  check(swipeProjects.errors.some((error) => error.message.includes('navigation')),
+  check(swipeProjects.navigations.length === 1,
     'Leftward swipe on Projects overview attempts the Who I Am navigation');
-  swipeProjects.errors.length = 0;
   swipeProjects.close();
 
   const swipeDetail = page('projects.html', { hash: '#chip', reduced: true });
@@ -899,12 +938,15 @@ async function flush(p) { await new Promise((resolve) => setTimeout(resolve, 0))
   mouse.close();
 
   const desktopHome = page('index.html', { width: 1512, height: 982,
-    saved: { 'emma-home-revealed': 'true', 'emma-motion-paused': 'true' } });
-  check(!desktopHome.w.siteLayout.matches && !desktopHome.w.siteMotion.stopped, 'Mobile session state does not alter desktop motion');
+    saved: { 'emma-motion-paused': 'true' } });
+  check(!desktopHome.w.siteLayout.matches && !desktopHome.w.siteMotion.stopped, 'Obsolete pause state does not alter desktop motion');
   check(!label(desktopHome, '.site-nav').classList.contains('is-ready'), 'Desktop Home starts with original masked navigation');
   check(!label(desktopHome, '.prelude').hidden && !label(desktopHome, '.prelude-title').hidden &&
     label(desktopHome, '.prelude-title').textContent === 'Emma Xu', 'Desktop masked name restored');
-  check(desktopHome.w.getComputedStyle(label(desktopHome, '.spotlight-tools')).display === 'none', 'Reveal/Replay controls remain mobile only');
+  check(label(desktopHome, '.prelude-title').tagName === 'BUTTON' &&
+    label(desktopHome, '.prelude-title').getAttribute('aria-label') === 'Emma Xu, continue to Projects' &&
+    !label(desktopHome, '.spotlight-tools'),
+    'Desktop masked Emma Xu name gives keyboard users an entry action without bottom controls');
   check(!desktopHome.d.querySelector('.motion-toggle'), 'Desktop has no motion button');
   desktopHome.click(label(desktopHome, '.prelude'));
   desktopHome.advance(350);
@@ -912,15 +954,57 @@ async function flush(p) { await new Promise((resolve) => setTimeout(resolve, 0))
   check(!label(desktopHome, '.page-menu a span').style.width, 'Desktop typewriter uses original measured link width');
   desktopHome.w.siteLayout.matches = true;
   desktopHome.w.siteLayout.dispatchEvent(new desktopHome.w.Event('change'));
-  check(!desktopHome.w.siteMotion.stopped && !label(desktopHome, '.spotlight-replay').hidden, 'Changing to mobile keeps revealed state and ignores removed pause setting');
+  check(!desktopHome.w.siteMotion.stopped && desktopHome.d.body.classList.contains('is-revealed'),
+    'Changing to mobile keeps revealed state and ignores removed pause setting');
   desktopHome.w.siteLayout.matches = false;
   desktopHome.w.siteLayout.dispatchEvent(new desktopHome.w.Event('change'));
-  check(!desktopHome.w.siteMotion.stopped && !label(desktopHome, '.site-nav').classList.contains('is-ready') &&
-    !label(desktopHome, '.prelude-title').hidden, 'Changing back restores desktop controller and masked name');
+  check(!desktopHome.w.siteMotion.stopped && label(desktopHome, '.site-nav').classList.contains('is-ready') &&
+    label(desktopHome, '.prelude').hidden, 'Changing back keeps the revealed Home state');
   desktopHome.close();
 
+  const returnHome = page('index.html', { width: 1512, height: 982,
+    saved: { 'emma-home-revealed': 'true' } });
+  check(label(returnHome, '.site-nav').classList.contains('is-ready') &&
+    label(returnHome, '.prelude').hidden &&
+    label(returnHome, '.site-nav a[href="index.html"]').getAttribute('aria-label') === 'Emma Xu, restart spotlight',
+  'Returning Home shows navigation with an Emma Xu restart action');
+  returnHome.w.sessionStorage.setItem('emma-home-revealed', 'false');
+  returnHome.w.dispatchEvent(new returnHome.w.Event('pageshow'));
+  check(!label(returnHome, '.prelude').hidden && !label(returnHome, '.prelude-title').hidden &&
+    !returnHome.d.body.classList.contains('is-revealed'),
+  'Selecting Emma Xu reactivates the spotlight on a restored desktop Home page');
+  returnHome.close();
+
+  const compactReturnHome = page('index.html', { saved: { 'emma-home-revealed': 'true' } });
+  compactReturnHome.w.sessionStorage.setItem('emma-home-revealed', 'false');
+  compactReturnHome.w.dispatchEvent(new compactReturnHome.w.Event('pageshow'));
+  check(!compactReturnHome.d.body.classList.contains('is-revealed') &&
+    !label(compactReturnHome, '.site-nav').inert &&
+    label(compactReturnHome, '.page-menu a[href="index.html"]').getAttribute('aria-label') === 'Emma Xu, continue to Projects',
+  'Selecting Emma Xu reactivates the spotlight on a restored compact Home page');
+  compactReturnHome.close();
+
+  const navToHome = page('projects.html', { width: 1512, height: 982,
+    saved: { 'emma-home-revealed': 'true' } });
+  const emmaLink = label(navToHome, '.site-nav a[href="index.html"]');
+  emmaLink.dispatchEvent(new navToHome.w.MouseEvent('click', { bubbles: true, cancelable: true, metaKey: true }));
+  check(navToHome.w.sessionStorage.getItem('emma-home-revealed') === 'true',
+  'Opening Emma Xu in another tab leaves this tab’s Home state alone');
+  navToHome.click(emmaLink);
+  check(navToHome.w.sessionStorage.getItem('emma-home-revealed') === 'false',
+  'Selecting Emma Xu from Projects requests the active spotlight');
+  navToHome.close();
+
+  const reducedDesktopHome = page('index.html', { width: 1512, height: 982, reduced: true });
+  reducedDesktopHome.click(label(reducedDesktopHome, '.prelude-title'));
+  check(reducedDesktopHome.navigations.length === 1 &&
+    label(reducedDesktopHome, '.prelude').hidden,
+  'Reduced motion desktop Emma Xu entry opens Projects without waiting for the mask fade');
+  reducedDesktopHome.close();
+
   const desktopProjects = page('projects.html', { width: 1512, height: 982 });
-  check(label(desktopProjects, '.overview-navigation').hidden, 'Desktop overview hints remain hidden');
+  check(label(desktopProjects, '.overview-navigation').hidden,
+    'Direct desktop Projects overview keeps its existing navigation');
   desktopProjects.click(label(desktopProjects, '[data-project="chip"]'));
   await flush(desktopProjects);
   check(desktopProjects.w.getComputedStyle(label(desktopProjects, '.site-nav--portrait')).display === 'flex',
