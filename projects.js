@@ -157,23 +157,25 @@
     const far = makeLayer(rgb(motion.lightGrey), motion.farOpacity);
     const near = makeLayer(rgb(motion.lightGrey), motion.nearOpacity);
     makeLayer(rgb(motion.ivory), 1);
-    const original = document.createElement("img");
-    original.className = "projects-target__original";
-    original.src = imageUrl(project.original);
-    original.alt = "";
-    original.setAttribute("aria-hidden", "true");
-    original.draggable = false;
-    if (project.detailCrop) {
-      const { sourceWidth, sourceHeight, x, y, width: visibleWidth, height: visibleHeight } = project.detailCrop;
-      original.style.left = `${-x / visibleWidth * 100}%`;
-      original.style.top = `${-y / visibleHeight * 100}%`;
-      original.style.width = `${sourceWidth / visibleWidth * 100}%`;
-      original.style.height = `${sourceHeight / visibleHeight * 100}%`;
-    }
     const reveal = document.createElement("div");
     reveal.className = "projects-target__reveal";
     reveal.setAttribute("aria-hidden", "true");
-    reveal.append(original);
+    if (project.allowOriginal !== false) {
+      const original = document.createElement("img");
+      original.className = "projects-target__original";
+      original.src = imageUrl(project.original);
+      original.alt = "";
+      original.setAttribute("aria-hidden", "true");
+      original.draggable = false;
+      if (project.detailCrop) {
+        const { sourceWidth, sourceHeight, x, y, width: visibleWidth, height: visibleHeight } = project.detailCrop;
+        original.style.left = `${-x / visibleWidth * 100}%`;
+        original.style.top = `${-y / visibleHeight * 100}%`;
+        original.style.width = `${sourceWidth / visibleWidth * 100}%`;
+        original.style.height = `${sourceHeight / visibleHeight * 100}%`;
+      }
+      reveal.append(original);
+    }
     wrapper.append(art, reveal);
     return { wrapper, reveal, near, far, sitePanel: null, siteFrame: null, siteLink: null };
   }
@@ -565,7 +567,7 @@
   function positionDetailContent() {
     if (!experience.classList.contains("is-detail") || !geometry.targetRect) return;
     const { y, height } = geometry.targetRect;
-    const artGap = mobileNav.matches ? 24 : 28;
+    const artGap = active?.artCaption ? 16 : mobileNav.matches ? 24 : 28;
     const topGap = headerToArtGap();
     const showingWebsite = state === "detail" && layoutOriginalShown && Boolean(active?.homepage) &&
       Boolean(targetArt?.siteFrame?.classList.contains("is-ready"));
@@ -599,8 +601,10 @@
     targetHost.replaceChildren();
     targetArt = makeTargetArt(project);
     targetHost.append(targetArt.wrapper);
-    getDetailSource(project);
-    getDetailTarget(project);
+    if (project.allowOriginal !== false) {
+      getDetailSource(project);
+      getDetailTarget(project);
+    }
     updateDetailImage();
     updateGeometry();
   }
@@ -896,20 +900,27 @@
     targetArt.sitePanel?.classList.toggle("is-visible", ready && visualOriginalShown);
     if (targetArt.sitePanel) targetArt.sitePanel.inert = !visualOriginalShown || detailSwitchActive;
     meta.classList.toggle("is-showing-original", originalShown);
-    originalToggle.disabled = !ready;
-    const nextLabel = originalShown ? "View ASCII" : "View Original";
-    const nextAccessibleLabel = !originalShown && active.homepage
-      ? `View Original: ${active.title} website` : nextLabel;
-    if (nextLabel !== originalToggleLabel || mobileNav.matches !== originalToggleWriterCompact) {
+    const canFlip = active.allowOriginal !== false;
+    originalToggle.hidden = !canFlip;
+    originalToggle.disabled = !ready || !canFlip;
+    if (!canFlip) {
       originalToggle.typewriter?.destroy();
-      originalToggle.textContent = nextLabel;
-      originalToggle.setAttribute("aria-label", nextAccessibleLabel);
-      window.attachTypewriter(originalToggle);
-      originalToggleLabel = nextLabel;
-      originalToggleWriterCompact = mobileNav.matches;
-    }
-    if (originalToggle.getAttribute("aria-label") !== nextAccessibleLabel) {
-      originalToggle.setAttribute("aria-label", nextAccessibleLabel);
+      originalToggleLabel = "";
+    } else {
+      const nextLabel = originalShown ? "View ASCII" : "View Original";
+      const nextAccessibleLabel = !originalShown && active.homepage
+        ? `View Original: ${active.title} website` : nextLabel;
+      if (nextLabel !== originalToggleLabel || mobileNav.matches !== originalToggleWriterCompact) {
+        originalToggle.typewriter?.destroy();
+        originalToggle.textContent = nextLabel;
+        originalToggle.setAttribute("aria-label", nextAccessibleLabel);
+        window.attachTypewriter(originalToggle);
+        originalToggleLabel = nextLabel;
+        originalToggleWriterCompact = mobileNav.matches;
+      }
+      if (originalToggle.getAttribute("aria-label") !== nextAccessibleLabel) {
+        originalToggle.setAttribute("aria-label", nextAccessibleLabel);
+      }
     }
     if (ready) {
       const stageLabel = `${active.title} ${originalShown && active.homepage ? "website preview" : originalShown ? "original image" : "ASCII artwork"}`;
@@ -918,7 +929,7 @@
   }
 
   originalToggle.addEventListener("click", () => {
-    if (state !== "detail") return;
+    if (state !== "detail" || active?.allowOriginal === false) return;
     originalShown = !originalShown;
     cancelDetailSwitch();
     updateDetailImage();
@@ -937,8 +948,19 @@
     title.textContent = project.title;
     metaText.textContent = mobileNav.matches ? project.meta || '' : (project.meta || '').replace(/ · /g, '\u00a0·\u00a0');
     meta.hidden = !project.meta;
+    meta.classList.toggle("projects-meta--with-original", project.allowOriginal !== false);
     window.detachTypewriters(copy);
     copy.replaceChildren();
+    copy.classList.toggle("has-art-caption", Boolean(project.artCaption));
+    if (project.artCaption) {
+      const caption = document.createElement("p");
+      caption.className = "projects-art-caption";
+      caption.textContent = project.artCaption;
+      const divider = document.createElement("div");
+      divider.className = "projects-copy-divider";
+      divider.setAttribute("aria-hidden", "true");
+      copy.append(caption, divider);
+    }
     for (const paragraph of project.paragraphs || []) {
       const element = document.createElement("p");
       if (typeof paragraph === "string") {
@@ -1429,7 +1451,12 @@
     const originalFocused = document.activeElement === originalToggle;
     if (!mobileNav.matches && document.activeElement === title) title.blur();
     navigateProject(project, mobileNav.matches);
-    if (!mobileNav.matches && originalFocused) originalToggle.focus({ preventScroll: true });
+    if (!mobileNav.matches && originalFocused) {
+      const focusTarget = project.allowOriginal === false
+        ? (direction > 0 ? nextButton : previousButton)
+        : originalToggle;
+      focusTarget.focus({ preventScroll: true });
+    }
     if (!mobileNav.matches) {
       announcement.textContent = `Project ${projects.indexOf(project) + 1} of ${projects.length}: ${project.title}`;
     }

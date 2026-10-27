@@ -46,11 +46,18 @@ window.projectConfig = {
       "large": "DK large.svg", "original": "DK asset.jpg", "colour": "dk.webp",
       "slot": { "x": 576, "y": 370, "width": 145, "height": 88 },
       "art": { "width": 528, "height": 354, "maxWidth": 500, "maxHeight": 335 },
-      "meta": "Java · 2025"
+      "meta": "Java · 2025",
+      "paragraphs": [
+        "I built this recreation of Donkey Kong in Java using the Bagel game library in 2025. The player controls Mario to jump over barrels, climb ladders and collect a hammer to defeat Donkey Kong before time runs out.",
+        "My biggest learning from this project was understanding how to break a program down into classes, and deciding what each class should be responsible for. Building the characters, game objects and screens helped me understand the core OOP principles; inheritance, encapsulation, abstraction and polymorphism in practice. These concepts became much easier to understand when I could see how they affected the behaviour of a game I was building.",
+        "Looking back, this was an essential foundational project for my later software related coursework. I found myself returning to the same ideas when working on larger projects: how to share behaviour between classes, keep different parts of a system modular, and make changes without having to understand every detail at once. It helped me become more thoughtful about how I structure my code and how the different parts fit together."
+      ]
     },
     {
       "id": "cnn", "title": "Brain Tumour Classifier", "small": "CNN small.svg",
       "large": "CNN large.svg", "original": "CNN asset.jpg", "colour": "cnn.webp",
+      "allowOriginal": false,
+      "artCaption": "Illustrative convolutional neural network (CNN) diagram. Shown for context; this does not depict the architecture of my brain tumour classifier.",
       "slot": { "x": 483, "y": 497, "width": 173, "height": 53 },
       "art": { "width": 1262, "height": 362, "maxWidth": 610, "maxHeight": 175 },
       "meta": "CNN, Python, PyTorch, OpenCV · 2024",

@@ -614,16 +614,33 @@ async function flush(p) { await new Promise((resolve) => setTimeout(resolve, 0))
       `Direct ${id} crop uses the current original image dimensions`);
     }
     check(label(direct, '.projects-title').textContent === project.title, `Direct ${id} route renders matching content`);
-    check(label(direct, '.projects-target__original').src.endsWith(encodeURIComponent(project.original)) &&
-      label(direct, '.projects-original-toggle').textContent === 'View Original',
-    `Direct ${id} route prepares its original image behind the ASCII`);
-    const originalImage = label(direct, '.projects-target__original');
-    check(direct.w.getComputedStyle(originalImage).objectFit === 'fill' && (!project.detailCrop ||
-      Math.abs(parseFloat(originalImage.style.left) + project.detailCrop.x / project.detailCrop.width * 100) < 0.01 &&
-      Math.abs(parseFloat(originalImage.style.top) + project.detailCrop.y / project.detailCrop.height * 100) < 0.01 &&
-      Math.abs(parseFloat(originalImage.style.width) * project.detailCrop.width / project.detailCrop.sourceWidth - 100) < 0.01 &&
-      Math.abs(parseFloat(originalImage.style.height) * project.detailCrop.height / project.detailCrop.sourceHeight - 100) < 0.01),
-    `Direct ${id} original content maps to its full ASCII artwork frame`);
+    if (project.allowOriginal === false) {
+      const toggle = label(direct, '.projects-original-toggle');
+      const caption = label(direct, '.projects-art-caption');
+      const divider = label(direct, '.projects-copy-divider');
+      check(toggle.hidden && toggle.disabled && direct.w.getComputedStyle(toggle).display === 'none' &&
+        !label(direct, '.projects-target__original') &&
+        !label(direct, '.projects-meta').classList.contains('projects-meta--with-original'),
+      `Direct ${id} keeps the original control and image unavailable`);
+      check(caption.textContent === project.artCaption && caption.nextElementSibling === divider &&
+        divider.nextElementSibling?.textContent === project.paragraphs[0] &&
+        label(direct, '.projects-copy').classList.contains('has-art-caption'),
+      `Direct ${id} shows its artwork caption above the lower divider and body copy`);
+      direct.click(toggle);
+      check(!label(direct, '.projects-target').classList.contains('is-original'),
+      `Direct ${id} cannot flip when its hidden control is activated programmatically`);
+    } else {
+      check(label(direct, '.projects-target__original').src.endsWith(encodeURIComponent(project.original)) &&
+        label(direct, '.projects-original-toggle').textContent === 'View Original',
+      `Direct ${id} route prepares its original image behind the ASCII`);
+      const originalImage = label(direct, '.projects-target__original');
+      check(direct.w.getComputedStyle(originalImage).objectFit === 'fill' && (!project.detailCrop ||
+        Math.abs(parseFloat(originalImage.style.left) + project.detailCrop.x / project.detailCrop.width * 100) < 0.01 &&
+        Math.abs(parseFloat(originalImage.style.top) + project.detailCrop.y / project.detailCrop.height * 100) < 0.01 &&
+        Math.abs(parseFloat(originalImage.style.width) * project.detailCrop.width / project.detailCrop.sourceWidth - 100) < 0.01 &&
+        Math.abs(parseFloat(originalImage.style.height) * project.detailCrop.height / project.detailCrop.sourceHeight - 100) < 0.01),
+      `Direct ${id} original content maps to its full ASCII artwork frame`);
+    }
     check(!direct.d.body.classList.contains('portrait-overview-page') &&
       direct.w.getComputedStyle(label(direct, '.site-nav--portrait')).display === 'none',
     `Direct ${id} route also hides the mobile site navigation`);
@@ -631,6 +648,21 @@ async function flush(p) { await new Promise((resolve) => setTimeout(resolve, 0))
     check(!direct.w.location.hash && label(direct, '.projects-heading').hidden, 'Direct-route All projects works');
     direct.close();
   }
+
+  const cnnPaging = page('projects.html', { hash: '#dk', width: 1512, height: 982, reduced: true });
+  const pagingToggle = label(cnnPaging, '.projects-original-toggle');
+  pagingToggle.focus();
+  cnnPaging.d.dispatchEvent(new cnnPaging.w.KeyboardEvent('keydown', {
+    key: 'ArrowRight', bubbles: true, cancelable: true,
+  }));
+  check(cnnPaging.w.location.hash === '#cnn' && pagingToggle.hidden &&
+    cnnPaging.d.activeElement === label(cnnPaging, '.project-next'),
+  'Paging from a focused original control moves focus to visible navigation on CNN');
+  cnnPaging.click(label(cnnPaging, '.project-previous'));
+  check(cnnPaging.w.location.hash === '#dk' && !pagingToggle.hidden &&
+    !label(cnnPaging, '.projects-art-caption'),
+  'Leaving CNN restores the original control and removes its caption');
+  cnnPaging.close();
 
   for (const [id, homepage] of [
     ['chip', 'https://play.unity.com/en/games/0198881a-52d3-47bd-b694-dfe287a2e0d8/webgl-builds'],
@@ -753,9 +785,9 @@ async function flush(p) { await new Promise((resolve) => setTimeout(resolve, 0))
   'Returning from an original image reassembles the ASCII and removes the canvas');
   imageMotion.close();
 
-  for (const id of ['dk', 'cnn']) {
+  for (const id of ['dk']) {
     const originalMotion = page('projects.html', {
-      hash: `#${id}`, width: id === 'cnn' ? 390 : 1512, height: id === 'cnn' ? 844 : 982,
+      hash: `#${id}`, width: 1512, height: 982,
     });
     const motionLayer = label(originalMotion, '.projects-stage__motion');
     const toggle = label(originalMotion, '.projects-original-toggle');
@@ -780,7 +812,7 @@ async function flush(p) { await new Promise((resolve) => setTimeout(resolve, 0))
     originalMotion.close();
   }
 
-  const mobileReveal = page('projects.html', { hash: '#cnn', reduced: true });
+  const mobileReveal = page('projects.html', { hash: '#dk', reduced: true });
   const mobileArt = label(mobileReveal, '.projects-target');
   const mobileToggle = label(mobileReveal, '.projects-original-toggle');
   check(!label(mobileReveal, '.projects-target__toggle') && !mobileToggle.disabled,
@@ -803,11 +835,13 @@ async function flush(p) { await new Promise((resolve) => setTimeout(resolve, 0))
     !label(mobileReveal, '.projects-meta').classList.contains('is-showing-original'),
   'Second metadata button press restores ASCII');
   mobileReveal.swipe(mobileToggle, -100);
-  check(mobileReveal.w.location.hash === '#cnn', 'Swipe starting on metadata control does not navigate');
+  check(mobileReveal.w.location.hash === '#dk', 'Swipe starting on metadata control does not navigate');
   mobileReveal.swipe(mobileArt, -100);
-  check(mobileReveal.w.location.hash === '#connect3' &&
-    label(mobileReveal, '.projects-original-toggle').textContent === 'View Original',
-  'Swipe starting on non-interactive detail artwork still pages and resets the image');
+  check(mobileReveal.w.location.hash === '#cnn' &&
+    label(mobileReveal, '.projects-original-toggle').hidden &&
+    label(mobileReveal, '.projects-art-caption').textContent ===
+      mobileReveal.w.projectConfig.projects.find((project) => project.id === 'cnn').artCaption,
+  'Swipe starting on non-interactive detail artwork pages to the captioned CNN detail');
   mobileReveal.close();
 
   const desktopReveal = page('projects.html', { hash: '#dk', width: 1512, height: 982, reduced: true });
