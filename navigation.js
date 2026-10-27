@@ -141,7 +141,7 @@
     const sequencedMenuLink = () => window.siteLayout.matches && (
       (link.matches('a[href="projects.html"], a[href="who-i-am.html"]') &&
         Boolean(link.closest('.home-page .page-menu.is-open'))) ||
-      (link.matches('a[href="index.html"], a[href="contact.html"]') &&
+      (link.matches('.site-nav--portrait .page-menu > a:not(.selected)') &&
         document.body.classList.contains('portrait-overview-page') &&
         Boolean(link.closest('.site-nav--portrait:has(.page-menu.is-open)')))
     );
@@ -202,7 +202,6 @@
     const menu = nav.querySelector('.page-menu');
     const trigger = menu.querySelector('a[href="index.html"]');
     const selected = menu.querySelector('a.selected');
-    const contact = nav.querySelector('.contact-link');
     nav.addEventListener('click', (event) => {
       if (document.body.classList.contains('home-page') || event.defaultPrevented ||
           event.button !== 0 || event.metaKey || event.ctrlKey || event.altKey || event.shiftKey ||
@@ -210,7 +209,6 @@
       try { sessionStorage.setItem('emma-home-revealed', 'false'); } catch (_) {}
     });
     menu.id = `page-destinations-${index}`;
-    if (nav.classList.contains('site-nav--portrait')) contact.id ||= `contact-destination-${index}`;
     let open = false;
     let keyboard = false;
     let restoringFocus = false;
@@ -219,7 +217,7 @@
     let sequenceTimer = null;
     let pageActive = true;
     const homeSequenceLinks = [menu.querySelector('a[href="projects.html"]'), menu.querySelector('a[href="who-i-am.html"]')];
-    const portraitSequenceLinks = [trigger, contact];
+    const portraitSequenceLinks = [...menu.querySelectorAll('a:not(.selected)')];
     const sideOverview = () => window.siteLayout.matches && nav.classList.contains('site-nav--portrait') &&
       document.body.classList.contains('portrait-overview-page') &&
       !document.documentElement.classList.contains('projects-initial-detail');
@@ -231,7 +229,7 @@
         link.removeAttribute('aria-expanded');
       }
       if (!window.siteLayout.matches) return;
-      disclosure().setAttribute('aria-controls', sideOverview() ? `${menu.id} ${contact.id}` : menu.id);
+      disclosure().setAttribute('aria-controls', menu.id);
       disclosure().setAttribute('aria-expanded', String(open));
     }
     const sequenceAllowed = () => sequenceRequested && open && window.siteLayout.matches &&
@@ -262,7 +260,6 @@
       syncDisclosure();
       if (changed || restore || animateSequence) {
         menu.querySelectorAll('a').forEach((link) => link.typewriter?.reset());
-        if (nav.classList.contains('site-nav--portrait')) portraitSequenceLinks[1].typewriter?.reset();
         restartSequence();
       }
       window.syncNavigationState();
@@ -292,7 +289,7 @@
     });
     window.addEventListener('pagehide', () => { pageActive = false; restartSequence(); });
     window.addEventListener('pageshow', () => { pageActive = true; restartSequence(); });
-    // Reuse the desktop links and typing. On touch, reveal them before following Home.
+    // Reuse the desktop links and typing on compact layouts.
     menu.addEventListener('click', (event) => {
       if (!window.siteLayout.matches || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
       const link = event.target.closest('a');
@@ -324,7 +321,7 @@
       if (!window.siteLayout.matches || event.key !== 'ArrowDown') return;
       event.preventDefault();
       setOpen(true);
-      (sideOverview() ? trigger : menu.querySelector('a')).focus();
+      (sideOverview() ? portraitSequenceLinks[0] : menu.querySelector('a')).focus();
     });
     document.addEventListener('pointerdown', (event) => {
       keyboard = false;

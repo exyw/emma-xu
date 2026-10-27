@@ -119,10 +119,6 @@
     transform: translateX(-4px) !important;
     transition: transform 2100ms cubic-bezier(.22,.7,.16,1);
   }
-  .home-page.is-splitting .page-menu > a[href="who-i-am.html"] .typewriter-link__text {
-    transform: translateY(0) !important;
-    transition: transform 2100ms cubic-bezier(.22,.7,.16,1);
-  }
   .prelude { position: absolute; inset: 0; pointer-events: none; transition: opacity 350ms ease; }
   .prelude.is-dismissed { opacity: 0; }
   .prelude-title { display: none; }

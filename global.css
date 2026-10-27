@@ -232,11 +232,12 @@ body.home-page.is-splitting .site-nav .contact-link {
   .home-page .site-nav .page-menu > a:first-child .typewriter-link__text { transform: translateY(10px); }
   .home-page .site-nav .page-menu > a:last-child .typewriter-link__text { transform: translateY(-10px); }
   body.home-page.is-project-chosen .site-nav .contact-link {
-    opacity: 0; visibility: hidden; pointer-events: none;
-    transition: opacity 300ms ease, visibility 0s linear 300ms;
+    opacity: 1; visibility: visible; pointer-events: auto;
   }
   body.home-page.is-splitting .site-nav .contact-link {
-    opacity: 0; visibility: hidden; pointer-events: none;
+    opacity: 1; visibility: visible; pointer-events: auto;
+    transform: translate(var(--intro-x, 0px), var(--intro-y, 0px));
+    transition: transform 2100ms cubic-bezier(.22,.7,.16,1), opacity 650ms ease;
   }
   body.home-page.is-splitting .site-nav .page-menu > a[href="projects.html"] {
     padding-right: 4px; padding-left: 4px;
@@ -244,14 +245,7 @@ body.home-page.is-splitting .site-nav .contact-link {
       padding 2100ms cubic-bezier(.22,.7,.16,1);
   }
   body.home-page.is-splitting .site-nav .page-menu > a[href="who-i-am.html"] {
-    visibility: visible; opacity: 1; pointer-events: auto;
-    transform: translate(var(--intro-x, 0px), var(--intro-y, 0px));
-    padding-right: 4px; padding-left: 4px; text-align: left;
-    transition: transform 2100ms cubic-bezier(.22,.7,.16,1),
-      opacity 650ms ease, padding 2100ms cubic-bezier(.22,.7,.16,1);
-  }
-  body.home-page.is-splitting .site-nav .page-menu > a[href="who-i-am.html"]::after {
-    content: ' →';
+    visibility: hidden; opacity: 0; pointer-events: none;
   }
   .overview-navigation {
     position: relative; z-index: 2; display: flex; flex-wrap: wrap;
@@ -269,66 +263,35 @@ body.home-page.is-splitting .site-nav .contact-link {
     min-height: 100svh;
   }
   html:not(.projects-initial-detail) .portrait-overview-page .site-nav--portrait {
-    position: absolute; top: 50%; bottom: auto;
-    right: calc(50% + var(--portrait-side-width) / 2 + var(--portrait-side-gap)); left: auto;
-    display: grid; grid-template-columns: max-content; grid-template-rows: repeat(3, 44px);
-    width: auto; margin: 0; padding: 0; gap: 0; transform: translateY(-50%);
-    flex-wrap: nowrap; white-space: nowrap;
+    --nav-row-height: 44px;
+    position: absolute; top: 50%; bottom: auto; left: 0; right: 0;
+    display: grid; grid-template-columns: minmax(0, 1fr) var(--portrait-side-width) minmax(0, 1fr);
+    grid-template-rows: 44px;
+    width: 100%; height: 44px; margin: 0; padding: 0; gap: 0;
+    align-items: center; transform: translateY(-50%); white-space: nowrap;
   }
-  html:not(.projects-initial-detail) .portrait-overview-page .site-nav--portrait .page-menu { display: contents; }
+  html:not(.projects-initial-detail) .portrait-overview-page .site-nav--portrait .page-menu {
+    display: flex; width: auto; height: auto; margin: 0 var(--portrait-side-gap) 0 0;
+    justify-self: end; align-items: flex-end; text-align: right;
+    transform: translateY(var(--selected-row-offset, 0px));
+  }
   html:not(.projects-initial-detail) .portrait-overview-page .site-nav--portrait .page-menu > a {
-    position: relative; top: auto; left: auto; width: auto; transform: none;
+    position: relative; top: auto; left: auto; width: auto;
   }
   html:not(.projects-initial-detail) .portrait-overview-page .site-nav--portrait a {
     min-height: 44px; padding: 12px 4px; font-size: 12px;
   }
-  html:not(.projects-initial-detail) .portrait-overview-page .site-nav--portrait .page-menu > a[href="index.html"] .typewriter-link__text {
-    transform: translateY(10px);
-  }
-  html:not(.projects-initial-detail) .portrait-overview-page .site-nav--portrait .contact-link .typewriter-link__text {
-    transform: translateY(-10px);
-  }
-  html:not(.projects-initial-detail) .portrait-overview-page .site-nav--portrait .page-menu > a[href="index.html"] {
-    grid-row: 1; transform: none;
-  }
-  html:not(.projects-initial-detail) .portrait-overview-page .site-nav--portrait .page-menu:not(.is-open) > a[href="index.html"] {
+  html:not(.projects-initial-detail) .portrait-overview-page .site-nav--portrait .page-menu:not(.is-open) > a:not(.selected) {
     visibility: hidden; opacity: 0; pointer-events: none;
   }
   html:not(.projects-initial-detail) .portrait-overview-page .site-nav--portrait .page-menu > a.selected {
-    grid-row: 2; visibility: visible; opacity: 1; pointer-events: auto;
-  }
-  html:not(.projects-initial-detail) .portrait-overview-page .site-nav--portrait .page-menu > a:not(.selected):not([href="index.html"]) {
-    display: none;
+    visibility: visible; opacity: 1; pointer-events: auto;
   }
   html:not(.projects-initial-detail) .portrait-overview-page .site-nav--portrait .contact-link {
-    grid-row: 3; margin: 0; visibility: hidden; opacity: 0; pointer-events: none;
-    transition: opacity 200ms ease, visibility 0s linear 200ms;
+    grid-column: 3; justify-self: start; margin: 0 0 0 var(--portrait-side-gap);
+    visibility: visible; opacity: 1; pointer-events: auto;
   }
-  html:not(.projects-initial-detail) .portrait-overview-page .site-nav--portrait:has(.page-menu.is-open) .contact-link {
-    visibility: visible; opacity: 1; pointer-events: auto; transition-delay: 0s;
-  }
-  html:not(.projects-initial-detail) .portrait-overview-page .overview-navigation {
-    position: absolute; z-index: 5; top: 50%;
-    left: calc(50% + var(--portrait-side-width) / 2 + var(--portrait-side-gap)); right: auto;
-    width: auto;
-    max-width: calc(50vw - var(--portrait-side-width) / 2 - var(--portrait-side-gap));
-    margin: 0; padding: 0;
-    transform: translateY(-50%); font-size: 12px;
-  }
-  html:not(.projects-initial-detail) .who-page.portrait-overview-page .site-nav--portrait {
-    left: calc(50% + var(--portrait-side-width) / 2 + var(--portrait-side-gap)); right: auto;
-  }
-  html:not(.projects-initial-detail) .who-page.portrait-overview-page .overview-navigation {
-    right: calc(50% + var(--portrait-side-width) / 2 + var(--portrait-side-gap)); left: auto;
-  }
-  html:not(.projects-initial-detail) .portrait-overview-page .overview-navigation a {
-    box-sizing: border-box; display: flex; flex-wrap: wrap; align-content: center;
-    justify-content: flex-start; gap: 0 0.4ch; max-width: 100%; min-height: 44px;
-    padding: 2px 4px; line-height: 18px; text-decoration: none;
-  }
-  html:not(.projects-initial-detail) .who-page.portrait-overview-page .overview-navigation a {
-    justify-content: flex-end;
-  }
+  .portrait-overview-page .overview-navigation { display: none; }
   .swipe-surface { touch-action: pan-y pinch-zoom; }
   .motion-stopped *, .motion-stopped *::before, .motion-stopped *::after {
     animation: none !important; transition: none !important; scroll-behavior: auto !important;
@@ -351,16 +314,4 @@ body.home-page.is-splitting .site-nav .contact-link {
     animation: cursor-blink 1000ms steps(1) infinite;
   }
   .project-pagination:not([hidden]) { display: grid; }
-}
-
-@media (max-width: 340px) {
-  body.home-page.is-splitting .site-nav .page-menu > a[href="who-i-am.html"] {
-    padding: 4px;
-    line-height: 18px;
-  }
-  body.home-page.is-splitting .site-nav .page-menu > a[href="who-i-am.html"]::after {
-    display: block;
-    content: '→';
-    line-height: 18px;
-  }
 }

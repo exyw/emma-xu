@@ -126,9 +126,9 @@
         const finalProjectWidth = origins.project.width -
           parseFloat(projectPadding.paddingLeft) - parseFloat(projectPadding.paddingRight) + 8;
         projectX = innerWidth / 2 - portrait / 2 - sideGap - finalProjectWidth;
-        const whoX = innerWidth / 2 + portrait / 2 + sideGap;
-        whoLink.style.setProperty('--intro-x', `${whoX - origins.who.left}px`);
-        whoLink.style.setProperty('--intro-y', `${targetTop - origins.who.top}px`);
+        const contactX = innerWidth / 2 + portrait / 2 + sideGap;
+        contact.style.setProperty('--intro-x', `${contactX - origins.contact.left}px`);
+        contact.style.setProperty('--intro-y', `${targetTop - origins.contact.top}px`);
       } else {
         const navWidth = Math.min(1010, innerWidth - 48);
         const navLeft = (innerWidth - navWidth) / 2;
