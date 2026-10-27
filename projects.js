@@ -69,8 +69,10 @@
   const url = (path) => new URL(path, document.baseURI).href;
   const asciiUrl = (name) => url(`${assets}ascii/${name}`);
   const colourUrl = (name) => url(`${assets}colour/${name}`);
+  const mobileArtUrl = (name) => url(`${assets}mobile/${name}`);
   const imageUrl = (name) => url(`${assets}images/${name}`);
   const colourMapUrl = (name) => url(`${assets}colour-map/${name}`);
+  const detailArtUrl = (project) => mobileNav.matches ? mobileArtUrl(project.mobile) : asciiUrl(project.large);
   const rgb = (value) => `rgb(${value.join(" ")})`;
   const mix = (a, b, fraction) => a.map((channel, index) => Math.round(channel + (b[index] - channel) * fraction));
   const clamp = (value, low, high) => Math.min(high, Math.max(low, value));
@@ -141,10 +143,11 @@
       maskUnits: "userSpaceOnUse", maskContentUnits: "userSpaceOnUse",
       style: "mask-type: alpha",
     });
-    mask.append(svg("image", {
-      href: asciiUrl(project.large), x: 0, y: 0,
+    const maskImage = svg("image", {
+      href: detailArtUrl(project), x: 0, y: 0,
       width, height, preserveAspectRatio: "none",
-    }));
+    });
+    mask.append(maskImage);
     const defs = svg("defs");
     defs.append(mask);
     art.append(defs);
@@ -177,7 +180,7 @@
       reveal.append(original);
     }
     wrapper.append(art, reveal);
-    return { wrapper, reveal, near, far, sitePanel: null, siteFrame: null, siteLink: null };
+    return { wrapper, reveal, near, far, maskImage, sitePanel: null, siteFrame: null, siteLink: null };
   }
 
   const layer = document.createElement("div");
@@ -610,12 +613,13 @@
   }
 
   function getDetailSource(project) {
-    if (!detailSourceImages.has(project.id)) {
+    const source = detailArtUrl(project);
+    if (!detailSourceImages.has(source)) {
       const image = new Image();
-      image.src = asciiUrl(project.large);
-      detailSourceImages.set(project.id, image.decode().then(() => image).catch(() => null));
+      image.src = source;
+      detailSourceImages.set(source, image.decode().then(() => image).catch(() => null));
     }
-    return detailSourceImages.get(project.id);
+    return detailSourceImages.get(source);
   }
 
   function getDetailTarget(project) {
@@ -1102,15 +1106,18 @@
   }
 
   async function prepareBuffers(project) {
+    const compact = mobileNav.matches;
     const expectedWidth = Math.round(geometry.width);
     const expectedHeight = Math.round(geometry.height);
-    if (buffers?.projectId === project.id && buffers.width === expectedWidth && buffers.height === expectedHeight) return buffers;
+    if (buffers?.projectId === project.id && buffers.compact === compact &&
+        buffers.width === expectedWidth && buffers.height === expectedHeight) return buffers;
     const [silhouette, ...art] = await Promise.all([
       loadImage(asciiUrl("Silhouette ASCII.svg")),
-      ...projects.map((item) => loadImage(asciiUrl(item.small))),
-      loadImage(asciiUrl(project.large)),
+      ...projects.map((item) => loadImage(compact ? colourUrl(item.colour) : asciiUrl(item.small))),
+      loadImage(compact ? mobileArtUrl(project.mobile) : asciiUrl(project.large)),
     ]);
     if (active?.id !== project.id) return null;
+    if (compact !== mobileNav.matches) return prepareBuffers(project);
     if (!geometry || geometry.stageWidth !== stage.clientWidth || geometry.stageHeight !== stage.clientHeight) updateGeometry();
     const { width, height, sourceRect, targetRect, canvasLeft, canvasTop } = geometry;
     const sourceCanvas = canvasOf(width, height);
@@ -1132,24 +1139,14 @@
       art[art.length - 1], targetRect.x - canvasLeft, targetRect.y - canvasTop,
       targetRect.width, targetRect.height,
     );
+    const palette = compact
+      ? ["charcoal", "grey", "ivory", "lightGrey", "amber"]
+      : ["charcoal", "grey", "ivory", "lightGrey", "amber", "coral"];
+    const tinted = (canvas) => Object.fromEntries(palette.map((name) => [name, tint(canvas, rgb(motion[name]))]));
     buffers = {
-      projectId: project.id, width: Math.round(width), height: Math.round(height),
-      source: {
-        charcoal: tint(sourceCanvas, rgb(motion.charcoal)),
-        grey: tint(sourceCanvas, rgb(motion.grey)),
-        ivory: tint(sourceCanvas, rgb(motion.ivory)),
-        lightGrey: tint(sourceCanvas, rgb(motion.lightGrey)),
-        amber: tint(sourceCanvas, rgb(motion.amber)),
-        coral: tint(sourceCanvas, rgb(motion.coral)),
-      },
-      target: {
-        charcoal: tint(targetCanvas, rgb(motion.charcoal)),
-        grey: tint(targetCanvas, rgb(motion.grey)),
-        ivory: tint(targetCanvas, rgb(motion.ivory)),
-        lightGrey: tint(targetCanvas, rgb(motion.lightGrey)),
-        amber: tint(targetCanvas, rgb(motion.amber)),
-        coral: tint(targetCanvas, rgb(motion.coral)),
-      },
+      projectId: project.id, compact, width: Math.round(width), height: Math.round(height),
+      source: tinted(sourceCanvas),
+      target: tinted(targetCanvas),
     };
     return buffers;
   }
@@ -1162,14 +1159,14 @@
     const amount = ease(progress);
     const start = points.source;
     const end = points[active.id];
-    const count = Math.max(start.length, end.length);
+    const count = mobileNav.matches ? Math.min(1600, Math.max(start.length, end.length)) : Math.max(start.length, end.length);
     const fromArt = amount < 0.5;
     const selected = fromArt ? buffers.source : buffers.target;
     const lightAmount = ease(clamp(progress / 0.6, 0, 1));
     const warm = Math.pow(Math.max(0, 1 - Math.abs(progress - 0.18) / 0.34), 1.5);
     const size = 6;
     const passes = [
-      { offset: farDelta, colour: warm > 0.28 ? "coral" : "grey", opacity: motion.farOpacity },
+      ...(mobileNav.matches ? [] : [{ offset: farDelta, colour: warm > 0.28 ? "coral" : "grey", opacity: motion.farOpacity }]),
       { offset: nearDelta, colour: warm > 0.28 ? "amber" : "grey", opacity: motion.nearOpacity },
       { offset: 0, colour: "charcoal", opacity: 1 },
     ];
@@ -1508,6 +1505,7 @@
     if (mobileNav.matches !== imageWasCompact) {
       imageWasCompact = mobileNav.matches;
       resetDetailImage();
+      if (active && targetArt) targetArt.maskImage.setAttribute("href", detailArtUrl(active));
     }
     projects.forEach((project) => {
       const button = buttons.get(project.id);

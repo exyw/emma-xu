@@ -127,6 +127,23 @@ html::-webkit-scrollbar { display: none; }
   font-family: courier, monospace;
 }
 .contact-menu { position: relative; }
+.scroll-cue {
+  position: absolute;
+  z-index: 2;
+  top: calc(80% + 56px);
+  left: 50%;
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  color: var(--contact-ink);
+  font-size: 13px;
+  line-height: 1;
+  white-space: nowrap;
+  pointer-events: none;
+  transform: translateX(-50%);
+}
+.scroll-cue span:last-child { font-size: 18px; }
+.contact-page:not(.has-contact-motion) .scroll-cue { display: none; }
 
 @media (max-width: 640px), (hover: none) and (pointer: coarse) {
   .contact-sequence {
@@ -157,6 +174,7 @@ html::-webkit-scrollbar { display: none; }
     transform: none;
   }
   .contact-page .site-nav:has(.page-menu.is-open) { padding-bottom: 96px; }
+  .scroll-cue { top: calc(100svh - 44px); font-size: 12px; }
   .contact-art {
     position: absolute;
   }

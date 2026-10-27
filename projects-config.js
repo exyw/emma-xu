@@ -10,7 +10,7 @@ window.projectConfig = {
   "projects": [
     {
       "id": "chip", "title": "Adventures of Chip", "small": "Chip small.svg",
-      "large": "Chip large.svg", "original": "CHIP asset.png", "colour": "chip.webp",
+      "large": "Chip large.svg", "mobile": "chip.webp", "original": "CHIP asset.png", "colour": "chip.webp",
       "detailCrop": { "sourceWidth": 429, "sourceHeight": 362, "x": 28, "y": 169, "width": 219, "height": 193 },
       "homepage": "https://play.unity.com/en/games/0198881a-52d3-47bd-b694-dfe287a2e0d8/webgl-builds",
       "slot": { "x": 514, "y": 43, "width": 175, "height": 135 },
@@ -25,7 +25,7 @@ window.projectConfig = {
     },
     {
       "id": "wit", "title": "WIT", "small": "WIT logo small.svg",
-      "large": "WIT logo large.svg", "original": "WIT logo asset.png", "colour": "wit.webp",
+      "large": "WIT logo large.svg", "mobile": "wit.webp", "original": "WIT logo asset.png", "colour": "wit.webp",
       "homepage": "https://witunimelb.org.au/",
       "detailCrop": { "sourceWidth": 529, "sourceHeight": 494, "x": 60, "y": 89, "width": 371, "height": 288 },
       "slot": { "x": 452, "y": 194, "width": 193, "height": 143 },
@@ -43,7 +43,7 @@ window.projectConfig = {
     },
     {
       "id": "dk", "title": "Donkey Kong", "small": "DK small.svg",
-      "large": "DK large.svg", "original": "DK asset.jpg", "colour": "dk.webp",
+      "large": "DK large.svg", "mobile": "dk.webp", "original": "DK asset.jpg", "colour": "dk.webp",
       "slot": { "x": 576, "y": 370, "width": 145, "height": 88 },
       "art": { "width": 528, "height": 354, "maxWidth": 500, "maxHeight": 335 },
       "meta": "Java · 2025",
@@ -55,7 +55,7 @@ window.projectConfig = {
     },
     {
       "id": "cnn", "title": "Brain Tumour Classifier", "small": "CNN small.svg",
-      "large": "CNN large.svg", "original": "CNN asset.jpg", "colour": "cnn.webp",
+      "large": "CNN large.svg", "mobile": "cnn.webp", "original": "CNN asset.jpg", "colour": "cnn.webp",
       "allowOriginal": false,
       "artCaption": "Illustrative convolutional neural network (CNN) diagram. Shown for context; this does not depict the architecture of my brain tumour classifier.",
       "slot": { "x": 483, "y": 497, "width": 173, "height": 53 },
@@ -69,7 +69,7 @@ window.projectConfig = {
     },
     {
       "id": "connect3", "title": "Connect3", "small": "Connect3 small.svg",
-      "large": "Connect3 large.svg", "original": "Connect3 asset.png", "colour": "connect3.webp",
+      "large": "Connect3 large.svg", "mobile": "connect3.webp", "original": "Connect3 asset.png", "colour": "connect3.webp",
       "homepage": "https://connect3.app/",
       "slot": { "x": 488, "y": 747, "width": 126, "height": 104 },
       "art": { "width": 483, "height": 398, "maxWidth": 440, "maxHeight": 363 },

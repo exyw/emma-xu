@@ -8,6 +8,7 @@
   const intro = content.querySelector('.contact-intro');
   const links = document.querySelector('.contact-links');
   const nav = document.querySelector('.site-nav');
+  const cue = stage.querySelector('.scroll-cue');
   const contactLinks = [...links.querySelectorAll('a')];
   const compact = window.siteLayout;
   const motion = window.siteMotion;
@@ -105,6 +106,7 @@
 
   function draw(amount) {
     if (!ready) return;
+    cue.style.opacity = String(1 - ease(clamp(amount / 0.18)));
     if (motion.stopped) {
       const settled = amount >= 0.5;
       portrait.style.opacity = settled ? '0' : '1';
@@ -194,6 +196,8 @@
       }
       const stageRect = stage.getBoundingClientRect();
       const portraitRect = portrait.getBoundingClientRect();
+      if (compact.matches) cue.style.top = `${Math.ceil(portraitRect.bottom - stageRect.top + 24)}px`;
+      else cue.style.removeProperty('top');
       const width = Math.ceil(stageRect.width);
       const height = Math.ceil(stageRect.height);
       if (!width || !height) return;
