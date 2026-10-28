@@ -976,6 +976,8 @@
           } else {
             const link = document.createElement("a");
             link.href = part.homepage ? project.homepage : part.href;
+            link.target = "_blank";
+            link.rel = "noopener noreferrer";
             link.textContent = part.text;
             element.append(link);
           }
