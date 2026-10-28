@@ -78,6 +78,15 @@ html::-webkit-scrollbar { display: none; }
   transform: translate(-50%, -50%);
 }
 .contact-page.has-contact-motion .contact-content { opacity: 0; }
+.contact-baby {
+  display: block;
+  width: auto;
+  max-width: 100%;
+  height: max(63px, min(25.2svh, 252px, calc(56svh - 203px)));
+  margin: 20px auto clamp(28px, 6svh, 64px);
+  filter: brightness(0) invert(1);
+  object-fit: contain;
+}
 .contact-intro {
   width: min(100%, 70ch);
   margin: 0 auto;
@@ -208,6 +217,10 @@ html::-webkit-scrollbar { display: none; }
   .contact-intro {
     line-height: 1.65;
     text-align-last: left;
+  }
+  .contact-baby {
+    height: min(26.6svh, 196px);
+    margin: 16px auto 28px;
   }
   .contact-links {
     display: flex;

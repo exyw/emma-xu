@@ -5,6 +5,7 @@
   const portrait = document.querySelector('.contact-portrait');
   const canvas = document.querySelector('.contact-morph');
   const content = document.querySelector('.contact-content');
+  const baby = content.querySelector('.contact-baby');
   const intro = content.querySelector('.contact-intro');
   const links = document.querySelector('.contact-links');
   const nav = document.querySelector('.site-nav');
@@ -56,10 +57,10 @@
     // Sample the rendered letters, including the links, so responsive wrapping
     // and the final DOM copy share the same destination geometry.
     const drawing = target.getContext('2d');
-    drawing.fillStyle = '#fff';
+    drawing.fillStyle = '#f7eee0';
     drawing.textBaseline = 'middle';
     const range = document.createRange();
-    for (const root of [document.querySelector('.contact-intro'), links]) {
+    for (const root of [intro, links]) {
       const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
       while (walker.nextNode()) {
         const node = walker.currentNode;
@@ -86,9 +87,9 @@
     if (compact.matches) {
       // Reveal the copy before it reaches the pinned navigation on short screens.
       const scrollRange = Math.max(1, sequence.getBoundingClientRect().height - window.innerHeight);
-      const introTop = intro.getBoundingClientRect().top - sequence.getBoundingClientRect().top;
+      const contentTop = content.getBoundingClientRect().top - sequence.getBoundingClientRect().top;
       const navBottom = document.querySelector('.site-nav').getBoundingClientRect().bottom;
-      const revealRange = Math.max(1, introTop - navBottom - 12);
+      const revealRange = Math.max(1, contentTop - navBottom - 12);
       return clamp(travelled / Math.min(scrollRange, revealRange));
     }
     return clamp(travelled / Math.max(1, sequence.offsetHeight - window.innerHeight));
@@ -171,7 +172,8 @@
 
   function rebuild() {
     resizeFrame = null;
-    if (!portrait.complete || !portrait.naturalWidth) return;
+    if (!portrait.complete || !portrait.naturalWidth ||
+      (!baby.hidden && (!baby.complete || !baby.naturalWidth))) return;
     try {
       contactLinks.forEach((link) => link.typewriter?.reset());
       if (compact.matches) {
@@ -218,16 +220,43 @@
 
       targetBuffer = canvasOf(width, height);
       drawTextMask(targetBuffer, stageRect);
+      const textPoints = sample(targetBuffer, compact.matches ? 2 : 3);
+      const babyBuffer = canvasOf(width, height);
+      if (!baby.hidden) {
+        const babyRect = baby.getBoundingClientRect();
+        const babyContext = babyBuffer.getContext('2d');
+        babyContext.drawImage(baby, babyRect.left - stageRect.left,
+          babyRect.top - stageRect.top, babyRect.width, babyRect.height);
+        babyContext.globalCompositeOperation = 'source-in';
+        babyContext.fillStyle = '#f7eee0';
+        babyContext.fillRect(0, 0, width, height);
+        targetBuffer.getContext('2d').drawImage(babyBuffer, 0, 0);
+      }
       const sourcePoints = sample(sourceBuffer, compact.matches ? 3 : 4);
-      const targetPoints = sample(targetBuffer, compact.matches ? 2 : 3);
-      const count = Math.min(compact.matches ? 1900 : 3200, sourcePoints.length, targetPoints.length);
+      const babyPoints = sample(babyBuffer, compact.matches ? 1 : 2);
+      const count = Math.min(compact.matches ? 1900 : 3200,
+        sourcePoints.length, textPoints.length + babyPoints.length);
       if (count < 120) throw new Error('Contact morph has too few visible points');
-      fragments = Array.from({ length: count }, (_, index) => ({
-        from: sourcePoints[Math.floor(index * sourcePoints.length / count)],
-        to: targetPoints[Math.floor(index * targetPoints.length / count)],
-        scatterX: (random(index + 11) - 0.5) * 140,
-        scatterY: (random(index + 2791) - 0.5) * 90,
-      }));
+      // Reserve enough fragments for the narrow illustration to remain visible
+      // during the morph, while the copy retains most of the destination points.
+      const babyCount = Math.min(babyPoints.length,
+        Math.max(count - textPoints.length, Math.round(count * 0.35)));
+      const textCount = count - babyCount;
+      let usedBaby = 0;
+      let usedText = 0;
+      fragments = Array.from({ length: count }, (_, index) => {
+        const useBaby = usedBaby < babyCount &&
+          (usedText >= textCount || Math.floor((index + 1) * babyCount / count) > usedBaby);
+        const points = useBaby ? babyPoints : textPoints;
+        const pointIndex = useBaby ? usedBaby++ : usedText++;
+        const pointCount = useBaby ? babyCount : textCount;
+        return {
+          from: sourcePoints[Math.floor(index * sourcePoints.length / count)],
+          to: points[Math.floor(pointIndex * points.length / pointCount)],
+          scatterX: (random(index + 11) - 0.5) * 140,
+          scatterY: (random(index + 2791) - 0.5) * 90,
+        };
+      });
       ready = true;
       requestUpdate();
     } catch (error) {
@@ -260,5 +289,10 @@
 
   portrait.addEventListener('load', requestRebuild);
   portrait.addEventListener('error', fallback);
+  baby.addEventListener('load', requestRebuild);
+  baby.addEventListener('error', () => {
+    baby.hidden = true;
+    requestRebuild();
+  });
   if (portrait.complete && portrait.naturalWidth) requestRebuild();
 })();
