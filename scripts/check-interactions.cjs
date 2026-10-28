@@ -6,6 +6,10 @@ const path = require('node:path');
 const { execFileSync } = require('node:child_process');
 const { JSDOM, VirtualConsole } = require('jsdom');
 const root = path.resolve(__dirname, '..');
+// jsdom's CSS parser does not yet accept cross-document View Transitions rules.
+const jsdomCSS = (css) => css.replace(
+  /\/\* Begin shared music view transition\. \*\/[\s\S]*?\/\* End shared music view transition\. \*\//g, '',
+);
 
 function page(file, { reduced = false, width = 390, height = 844, hash = '', saved = {}, coarse = width <= 1000, hover = width > 1000 } = {}) {
   const errors = [];
@@ -67,7 +71,7 @@ function page(file, { reduced = false, width = 390, height = 844, hash = '', sav
   Object.entries(saved).forEach(([key, value]) => w.sessionStorage.setItem(key, value));
   for (const link of w.document.querySelectorAll('link[rel="stylesheet"]')) {
     const style = w.document.createElement('style');
-    style.textContent = fs.readFileSync(path.join(root, link.getAttribute('href')), 'utf8');
+    style.textContent = jsdomCSS(fs.readFileSync(path.join(root, link.getAttribute('href')), 'utf8'));
     w.document.head.append(style);
     // jsdom does not evaluate media queries; apply the mocked viewport's active rules.
     const activeRules = (rules) => [...rules].map((rule) => rule.type === 4
@@ -128,7 +132,7 @@ async function flush(p) { await new Promise((resolve) => setTimeout(resolve, 0))
   const baselineSource = (file) => execFileSync('git', ['show', `634eb0b:${file}`], { cwd: root, encoding: 'utf8' });
   function desktopRules(css) {
     const dom = new JSDOM('<!doctype html><style></style>');
-    dom.window.document.querySelector('style').textContent = css;
+    dom.window.document.querySelector('style').textContent = jsdomCSS(css);
     const rules = [...dom.window.document.styleSheets[0].cssRules].filter((rule) => rule.type === 1);
     const result = new Map(rules.map((rule) => [rule.selectorText.replace(/\s+/g, ' ').trim(),
       rule.style.cssText.replace(/\s+/g, ' ').trim()]));

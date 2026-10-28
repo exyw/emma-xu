@@ -239,7 +239,8 @@
   const imageCache = new Map();
   const transitionDuration = 1.2;
   const originalScrollRestoration = history.scrollRestoration;
-  const themeControls = [...nav.querySelectorAll("a, button"), back, mobileBack, detailContact];
+  const themeControls = [...nav.querySelectorAll("a, button"), back, mobileBack, detailContact,
+    document.querySelector('.music-toggle')];
   const lightBackground = [
     [0, [237, 228, 211]], [0.5, [210, 197, 176]], [1, [182, 165, 141]],
   ];

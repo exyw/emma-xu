@@ -1,8 +1,60 @@
+/* Begin shared music view transition. */
+@view-transition { navigation: auto; }
+
+/* Keep the shared corner control steady across full-page navigation. */
+::view-transition-old(root),
+::view-transition-new(root),
+::view-transition-group(music-toggle),
+::view-transition-old(music-toggle),
+::view-transition-new(music-toggle) {
+  animation: none;
+}
+/* End shared music view transition. */
+
 body {
   min-height: 100vh;
   margin: 0;
   background: radial-gradient(circle at center, #EDE4D3 0%, #B6A58D 100%);
   font-family: courier, monospace;
+}
+
+.music-toggle {
+  view-transition-name: music-toggle;
+  position: fixed;
+  z-index: 50;
+  right: max(16px, env(safe-area-inset-right));
+  bottom: max(16px, env(safe-area-inset-bottom));
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #24221f;
+  font: 16px/1 courier, monospace;
+  cursor: pointer;
+}
+
+.music-toggle:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
+.home-page:not(.is-revealed) .music-toggle,
+.contact-page .music-toggle,
+.projects-page.is-inverted .music-toggle,
+.projects-initial-detail .projects-page .music-toggle {
+  color: #f8f0e3;
+}
+
+.projects-page .music-toggle {
+  color: var(--project-transition-ink, #24221f);
+}
+
+.projects-page.is-inverted .music-toggle,
+.projects-initial-detail .projects-page .music-toggle {
+  color: var(--project-transition-ink, #f8f0e3);
 }
 
 .site-nav {
