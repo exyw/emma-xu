@@ -24,15 +24,17 @@
   const announcement = document.querySelector('.project-announcement');
   const main = document.querySelector('.projects-main');
   const mobileNav = window.siteLayout;
-  let backWriterCompact = null;
-  const visibleBack = () => mobileNav.matches ? mobileBack : back;
+  const narrowDesktopHeader = window.matchMedia('(min-width: 641px) and (max-width: 940px) and (hover: hover)');
+  const useDetailHeader = () => mobileNav.matches || narrowDesktopHeader.matches;
+  let backWriterInHeader = null;
+  const visibleBack = () => useDetailHeader() ? mobileBack : back;
   function syncBackTypewriter() {
     const currentBack = visibleBack();
-    if (heading.hidden || (currentBack.typewriter && backWriterCompact === mobileNav.matches)) return;
+    if (heading.hidden || (currentBack.typewriter && backWriterInHeader === useDetailHeader())) return;
     back.typewriter?.destroy();
     mobileBack.typewriter?.destroy();
     window.attachTypewriter(currentBack);
-    backWriterCompact = mobileNav.matches;
+    backWriterInHeader = useDetailHeader();
   }
   function setPortraitOverview(value) {
     document.body.classList.toggle('portrait-overview-page', value);
@@ -353,7 +355,7 @@
   function updateNavRelease() {
     const content = copy.hidden ? pagination : copy;
     if (!experience.classList.contains("is-detail") || content.hidden ||
-        !copy.classList.contains("is-content-visible") || mobileNav.matches) {
+        !copy.classList.contains("is-content-visible") || useDetailHeader()) {
       resetNavRelease();
       return;
     }

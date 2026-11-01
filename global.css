@@ -259,6 +259,39 @@ body.home-page.is-splitting .site-nav .contact-link {
   transition: transform 2100ms cubic-bezier(.22,.7,.16,1), opacity 500ms ease;
 }
 
+/* Give the Projects portrait its full stage width on narrower mouse desktops. */
+@media (min-width: 641px) and (max-width: 940px) and (hover: hover) {
+  .projects-page.portrait-overview-page .site-nav--portrait {
+    --nav-row-height: 44px;
+    position: sticky;
+    top: 0;
+    left: auto;
+    z-index: 5;
+    width: 100%;
+    height: 56px;
+    margin: 0 0 -56px;
+    padding: 0 24px;
+    align-items: center;
+    transform: none;
+    pointer-events: auto;
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+  }
+  .projects-page.portrait-overview-page .site-nav--portrait .page-menu {
+    margin-left: 0;
+  }
+  .projects-page.portrait-overview-page .site-nav--portrait a {
+    min-height: 44px;
+    padding: 12px 0;
+    font-size: 13px;
+    font-weight: 700;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+  .projects-initial-detail .projects-page .site-nav--portrait,
+  .projects-page:not(.portrait-overview-page) .site-nav--portrait { display: none; }
+}
+
 @media (max-width: 640px), (hover: none) and (pointer: coarse) {
   .site-nav, .site-nav--portrait, .contact-page .site-nav {
     position: relative; top: auto; bottom: auto; left: auto; z-index: 10;
