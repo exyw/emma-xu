@@ -1,6 +1,9 @@
 (() => {
+  // Home owns the spotlight and animated introduction to Projects. The
+  // shared navigation module supplies the links and their typing controllers.
   let dispose = () => {};
   function mount() {
+    // Recreate only the active layout's controller when the shared media query changes.
     dispose();
     const handlers = [];
     const on = (target, type, fn, options) => {
@@ -16,6 +19,8 @@
     };
   }
   function createProjectsJourney(on) {
+    // These classes stage the real navigation links, then a canvas portrait,
+    // so projects.html can finish the handoff with the same artwork position.
     const siteNav = document.querySelector('.site-nav');
     const projectLink = siteNav.querySelector('a[href="projects.html"]');
     const whoLink = siteNav.querySelector('a[href="who-i-am.html"]');
@@ -89,6 +94,8 @@
     }
     function go() {
       if (cancelled) return;
+      // The timestamp is consumed by Projects on the next document load;
+      // stale or direct visits should use its normal overview entrance.
       try {
         const key = 'emma-projects-portrait-handoff';
         if (document.body.classList.contains('is-finishing') && !window.siteMotion.stopped) {
@@ -186,6 +193,8 @@
       const context = canvas.getContext('2d');
       const scaleX = bounds.width / crop.width;
       const scaleY = bounds.height / crop.height;
+      // Generated paths represent whole ASCII characters, so each one can
+      // travel into its final position without rebuilding the source SVG.
       const glyphs = window.projectEntryGlyphs.map(([x, y, path], index) => {
         const outward = Math.atan2((y - crop.y - crop.height / 2) * scaleY,
           (x - crop.x - crop.width / 2) * scaleX);
@@ -276,6 +285,8 @@
     return { start, reset, dispose: reset };
   }
   function compact(on, journey) {
+    // Compact spotlight dismisses on a clean primary-pointer tap; arrows move
+    // the light even when its autonomous drift is stopped.
     const area = document.querySelector('.home-artwork');
     const prelude = document.querySelector('.prelude');
     prelude.querySelector('.prelude-title').hidden = true;
@@ -416,6 +427,8 @@
     return () => { unsubscribe(); if (frame !== null) cancelAnimationFrame(frame); clearTimeout(navTimer); siteNav.inert = false; siteNav.removeAttribute('aria-hidden'); };
   }
   function desktop(on, journey) {
+    // Desktop pointer movement temporarily steers the light; after idle time
+    // its target returns to autonomous wandering.
     const prelude = document.querySelector(".prelude");
     const title = prelude.querySelector('.prelude-title');
     title.hidden = false;

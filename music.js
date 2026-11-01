@@ -1,4 +1,6 @@
 (() => {
+  // One master control owns music and per-character typing sounds on all pages.
+  // Session storage carries the opt-in setting and track position across page loads.
   const storageKey = 'emma-background-music';
   const soundSettings = Object.freeze({
     track: 'ghosts-like-me',
@@ -77,6 +79,8 @@
   }
 
   function restorePosition() {
+    // Metadata must arrive before seeking; modulo handles a saved position
+    // beyond the duration of the current copy of the track.
     if (!seekPending || music.readyState < 1) return;
     const duration = music.duration;
     const time = Number.isFinite(duration) && duration > 0 ? savedTime % duration : savedTime;
@@ -128,6 +132,8 @@
   });
 
   function playKeypress(writer, character) {
+    // Drop sounds when busy or rate limited; delayed keypresses would no longer
+    // line up with the typewriter's visible characters.
     if (!character || /\s/u.test(character) || !enabled || musicBlocked || leaving ||
         document.hidden || window.siteMotion.stopped || typingBlocked) return;
     const now = performance.now();

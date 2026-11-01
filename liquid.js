@@ -1,4 +1,6 @@
 (() => {
+  // Contact's WebGL canvas is decorative. It runs only while visible and
+  // renders one still frame when the system requests reduced motion.
   const vertexSource = `
     attribute vec2 a_position;
     varying vec2 v_uv;
@@ -120,6 +122,7 @@
     if (!canvas) return;
 
     const gl = canvas.getContext("webgl", { alpha: false, antialias: false, powerPreference: "low-power" });
+    // Contact's CSS gradient remains visible when WebGL is unavailable.
     if (!gl) return;
     const vertex = shader(gl, gl.VERTEX_SHADER, vertexSource);
     const fragment = shader(gl, gl.FRAGMENT_SHADER, fragmentSource);

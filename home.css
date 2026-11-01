@@ -50,6 +50,8 @@
   outline-offset: 4px;
 }
 
+/* The moving gradient reveals the page through a stationary overlay; Home JS
+   changes only its center, so the artwork's interaction area stays fixed. */
 .prelude-mask {
   position: absolute;
   inset: 0;

@@ -32,6 +32,8 @@ html::-webkit-scrollbar { display: none; }
     linear-gradient(168deg, #59230f 0%, #130d08 37%);
 }
 .contact-scroll { position: relative; z-index: 1; }
+/* Desktop scroll distance drives the sticky-stage morph; compact layout below
+   measures its own content height instead of reserving fixed scroll space. */
 .contact-sequence { height: 320svh; }
 .contact-page:not(.has-contact-motion) .contact-sequence { height: 100svh; }
 .contact-stage {

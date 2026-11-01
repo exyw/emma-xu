@@ -20,6 +20,8 @@
   let menuOpen = false;
   let pageActive = true;
   const inputListeners = new Set();
+  // Start from pointer capability, then let recent real input decide whether
+  // automatic touch previews may run on a hybrid device.
   function updateInput(next) {
     if (touch === next) return;
     touch = next;
@@ -84,6 +86,8 @@
   };
 
   window.addHorizontalSwipe = (element, onSwipe, canStart = () => true) => {
+    // Page scripts choose the destination; this helper only recognizes a
+    // deliberate horizontal gesture and shields its trailing synthetic click.
     let gesture = null;
     let suppressUntil = 0;
     const excluded = 'a, input, textarea, select, [contenteditable], .site-nav';

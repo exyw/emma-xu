@@ -1,4 +1,6 @@
 (() => {
+  // Projects keeps overview and detail in one document. Hash routes and
+  // history select the project; the stage swaps portrait, morph and detail art.
   const stage = document.querySelector("[data-project-stage]");
   if (!stage) return;
 
@@ -63,6 +65,8 @@
   // All navigation uses the verified order and content in projects-config.js.
   const projectById = new Map(projects.map((project) => [project.id, project]));
   const points = window.projectMorphPoints;
+  // The point data is generated from the configured artwork; source and each
+  // project target use normalized coordinates for the same canvas transition.
   const svg = (tag, attributes = {}) => {
     const element = document.createElementNS(svgNS, tag);
     for (const [name, value] of Object.entries(attributes)) element.setAttribute(name, value);
@@ -203,6 +207,9 @@
   stage.append(layer);
   const buttons = new Map();
   let targetArt = null;
+  // originalShown is the requested toggle; visualOriginalShown controls the
+  // visible art, and layoutOriginalShown positions copy for a site preview.
+  // They differ while an iframe loads or the flip and scan run.
   let originalShown = false;
   let visualOriginalShown = false;
   let layoutOriginalShown = false;
@@ -216,6 +223,8 @@
   let originalToggleWriterCompact = mobileNav.matches;
   let previewSwitchTimer = null;
   let active = null;
+  // loading waits for artwork, opening/closing advance progress, and settled
+  // overview/detail determine which real controls may receive input.
   let state = "overview";
   let progress = 0;
   let ghostId = null;
@@ -459,6 +468,8 @@
   });
 
   function rects() {
+    // Overview artwork stays centered in the portrait stage; each detail's
+    // configured art bounds determine its own size and position below metadata.
     const width = stage.clientWidth;
     const height = stage.clientHeight;
     const figureWidth = height * crop.width / crop.height * sourceWidthScale;
@@ -649,6 +660,9 @@
   }
 
   async function animateDetailSwitch(toOriginal) {
+    // The intermediate canvas folds glyph-sized regions in place. Original
+    // media becomes visible during the following scan; version checks discard
+    // late image loads or frames from a previous toggle.
     if (!targetArt || !active || state !== "detail") return;
     if (window.siteMotion.stopped) {
       visualOriginalShown = toOriginal;
@@ -853,6 +867,8 @@
   }
 
   function showWebsitePreview(project) {
+    // Create the external iframe only on request. A load event cannot prove
+    // that the external page rendered, so the panel also provides a direct link.
     if (targetArt.sitePanel) return;
     const art = targetArt;
     const panel = document.createElement("div");
@@ -954,6 +970,8 @@
   });
 
   function renderCopy(project) {
+    // Configured text segments become real links. Reattach typing only after
+    // replacing the previous project's copy and clearing its sound writers.
     renderedProjectId = project.id;
     title.textContent = project.title;
     metaText.textContent = mobileNav.matches ? project.meta || '' : (project.meta || '').replace(/ · /g, '\u00a0·\u00a0');
@@ -1114,6 +1132,8 @@
   }
 
   async function prepareBuffers(project) {
+    // Rasterize both endpoints into the same measured canvas, then tint copies
+    // for the moving portrait/echo passes. Resize or project changes invalidate it.
     const compact = mobileNav.matches;
     const expectedWidth = Math.round(geometry.width);
     const expectedHeight = Math.round(geometry.height);
@@ -1160,6 +1180,8 @@
   }
 
   function drawMorph(nearDelta, farDelta) {
+    // Compact mode samples fewer generated points and omits the far echo to
+    // keep the same transition affordable on smaller devices.
     if (!active || !buffers || !points) return;
     const context = morphCanvas.getContext("2d");
     const { width, height, sourceRect, targetRect, canvasLeft, canvasTop } = geometry;
@@ -1325,6 +1347,8 @@
   }
 
   async function openProject(project, moveFocus, restoreY = 0) {
+    // Every route into a detail uses this path. The request version prevents
+    // a slow raster preparation from opening an outdated project.
     const version = ++requestVersion;
     const previousState = state;
     const previousProgress = progress;
@@ -1450,6 +1474,8 @@
   }
 
   function navigateProject(project, moveFocus = true) {
+    // Depth records how many detail entries sit above the original overview,
+    // so All projects can return to that entry after several next/previous hops.
     saveReadingPosition();
     const depth = state === 'overview' ? 1 : history.state?.overviewDepth ? history.state.overviewDepth + 1 : 0;
     history.pushState({ projectsPage: true, overviewDepth: depth, readingY: 0 }, '', `#${project.id}`);
@@ -1557,6 +1583,8 @@
     updateRunState();
   });
   window.addEventListener("pagereveal", (event) => {
+    // Hold sway until the named Home-to-Projects portrait transition finishes;
+    // otherwise its first moving frame would shift the transition destination.
     if (!document.documentElement.classList.contains('projects-entry-handoff')) return;
     handoffRevealHandled = true;
     if (!event.viewTransition) {

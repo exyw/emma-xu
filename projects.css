@@ -533,6 +533,8 @@
   .project-pagination { transition: none; }
 }
 
+/* Compact overview centers the portrait beside shared navigation; a detail
+   switches to its own sticky header and lets the art/copy grow vertically. */
 @media (max-width: 640px), (hover: none) and (pointer: coarse) {
   .projects-main { min-height: 0; }
   .projects-experience {

@@ -1,4 +1,6 @@
 (() => {
+  // Who I Am builds its portrait and keepsake buttons from one source plane;
+  // Projects uses the counterpart portrait navigation and swipe direction.
   const illustration = { width: 276, height: 900, pageX: 627, pageY: 51 };
   const motion = {
     swayCycle: 6, desktopAmplitude: 12, compactAmplitude: 8,
@@ -125,6 +127,8 @@
     let ghost = null;
 
     function renderActive() {
+      // Compact selection outranks the timed ghost; desktop focus and hover
+      // outrank a touch or keyboard selection until the visitor leaves them.
       const activeId = window.siteLayout.matches ? selectedId || focusedId || hoveredId || ghostId : focusedId || hoveredId || selectedId;
       buttons.forEach((button, id) => {
         button.classList.toggle("is-active", id === activeId);
@@ -183,6 +187,8 @@
         renderActive();
       });
       button.addEventListener("click", (event) => {
+        // Mouse clicks on desktop remain transient; touch and keyboard can
+        // persist a reveal, including a second activation to close it.
         if (!window.siteLayout.matches && event.detail !== 0 && pointerType !== 'touch' && pointerType !== 'pen') return;
         pointerType = null;
         selectedId = selectedId === item.id ? null : item.id;
@@ -263,6 +269,8 @@
     }
 
     function drawMotion() {
+      // Echoes lag the moving foreground in source units; the short burst
+      // spreads and warms them without moving the button hit areas separately.
       const amplitude = compactMotion.matches ? motion.compactAmplitude : motion.desktopAmplitude;
       const split = compactMotion.matches ? motion.compactSplit : motion.desktopSplit;
       const angle = (2 * Math.PI) / motion.swayCycle;

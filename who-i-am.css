@@ -105,6 +105,7 @@
     max-width: none; transform: none;
   }
   .who-keepsake.is-selected { outline: 1px dashed #2b2118; outline-offset: 3px; }
+  /* Small visual keepsakes keep their proportions while the hit area grows. */
   .who-keepsake::before {
     content: ''; position: absolute; top: 50%; left: 50%;
     width: max(100%, 44px); height: max(100%, 44px); transform: translate(-50%, -50%);

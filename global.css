@@ -272,6 +272,8 @@ body.home-page.is-splitting .site-nav .contact-link {
   .projects-page:not(.portrait-overview-page) .site-nav--portrait { display: none; }
 }
 
+/* This is the same compact-mode query exposed as siteLayout in experience.js;
+   shared menu geometry and page gesture behavior must switch together. */
 @media (max-width: 640px), (hover: none) and (pointer: coarse) {
   .site-nav, .site-nav--portrait, .contact-page .site-nav {
     position: relative; top: auto; bottom: auto; left: auto; z-index: 10;

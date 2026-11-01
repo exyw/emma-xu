@@ -1,4 +1,6 @@
 (() => {
+  // The same markup serves every page; this module attaches typing and
+  // compact disclosure behavior without cloning navigation links.
   const motion = window.siteMotion;
   const writers = new Set();
   function attachCompactTypewriter(link) {
@@ -6,6 +8,7 @@
     const label = link.textContent.trim();
     const text = document.createElement('span');
     text.className = 'typewriter-link__text';
+    // A stable accessible name survives while the visible span is temporarily empty.
     text.setAttribute('aria-hidden', 'true');
     text.style.width = `${label.length}ch`;
     text.textContent = label;
@@ -204,6 +207,8 @@
   window.addEventListener('pagehide', () => writers.forEach((writer) => writer.reset()));
 
   window.syncNavigationState = () => {
+    // Ghost previews listen for this event so an expanded menu never competes
+    // with a visitor's deliberate navigation choice.
     const open = window.siteLayout.matches && Boolean(document.querySelector('.site-nav .page-menu.is-open'));
     document.dispatchEvent(new CustomEvent('site-menu-change', { detail: { open } }));
   };
@@ -230,6 +235,8 @@
     const sideOverview = () => window.siteLayout.matches && nav.classList.contains('site-nav--portrait') &&
       document.body.classList.contains('portrait-overview-page') &&
       !document.documentElement.classList.contains('projects-initial-detail');
+    // Portrait overviews disclose around their selected page; Home uses Emma Xu
+    // as its trigger. Both sequences type the actual links in their visual order.
     const sequenceLinks = () => sideOverview() ? portraitSequenceLinks : homeSequenceLinks;
     const disclosure = () => sideOverview() ? selected : trigger;
     function syncDisclosure() {

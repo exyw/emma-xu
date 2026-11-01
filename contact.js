@@ -1,3 +1,5 @@
+// Contact scrolls between real DOM endpoints; canvas fragments fill only the
+// transition between the portrait and the settled illustration, copy and links.
 (() => {
   const page = document.querySelector('.contact-page');
   const sequence = document.querySelector('.contact-sequence');
@@ -96,6 +98,7 @@
   }
 
   function setLinksInteractive(interactive) {
+    // Hidden links leave the tab order until their visible DOM content settles.
     if (links.inert === !interactive) return;
     if (!interactive) {
       if (links.contains(document.activeElement)) document.activeElement.blur();
@@ -157,6 +160,8 @@
   }
 
   function fallback() {
+    // If source images or canvas sampling fail, show the normal DOM content
+    // and restore the links instead of leaving an empty animated stage.
     ready = false;
     page.classList.remove('has-contact-motion');
     page.classList.add('is-settled');
@@ -171,6 +176,8 @@
   }
 
   function rebuild() {
+    // Font metrics, image bounds and compact wrapping can change the target;
+    // resample after layout changes so fragments land on the rendered content.
     resizeFrame = null;
     if (!portrait.complete || !portrait.naturalWidth ||
       (!baby.hidden && (!baby.complete || !baby.naturalWidth))) return;
