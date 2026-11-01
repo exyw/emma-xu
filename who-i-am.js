@@ -13,17 +13,17 @@
   // Source bounds come from the 1512 × 982 Figma frame. The portrait,
   // keepsakes, and echo cutouts all use this coordinate system.
   const keepsakes = [
-    { id: "radiohead", label: "Radiohead", ascii: "RadioHead.svg", original: null, x: 729, y: 111, width: 60, height: 60 },
-    { id: "beli", label: "Beli", ascii: "Beli.svg", original: null, x: 716, y: 232, width: 67, height: 57 },
+    { id: "radiohead", label: "Radiohead", ascii: "RadioHead.svg", original: "RadioHead.png", x: 729, y: 111, width: 60, height: 60 },
+    { id: "beli", label: "Beli", ascii: "Beli.svg", original: "Beli.png", x: 716, y: 232, width: 67, height: 57 },
     { id: "drawing-closer", label: "Drawing Closer", ascii: "DrawingCloser.svg", original: "DrawingCloser.jpeg", x: 650, y: 315, width: 98, height: 121 },
     { id: "wit", label: "WIT", ascii: "WIT.svg", original: null, x: 759, y: 301, width: 108, height: 63 },
     { id: "malcolm-todd", label: "Malcolm Todd", ascii: "MalcolmTodd.svg", original: "MalcolmTodd.png", x: 771, y: 413, width: 72, height: 60 },
     { id: "dominic-fike", label: "Dominic Fike", ascii: "DominicFike.svg", original: "DominicFike.png", x: 639, y: 507, width: 61, height: 60 },
-    { id: "18x2", label: "18×2", ascii: "18x2.svg", original: null, x: 714, y: 497, width: 91, height: 145 },
-    { id: "bon-iver", label: "Bon Iver", ascii: "BonIver.svg", original: null, x: 818, y: 508, width: 61, height: 60 },
+    { id: "18x2", label: "18×2", ascii: "18x2.svg", original: "18x2.png", x: 714, y: 497, width: 91, height: 145 },
+    { id: "bon-iver", label: "Bon Iver", ascii: "BonIver.svg", original: "BonIver.png", x: 818, y: 508, width: 61, height: 60 },
     { id: "baby-me", label: "Baby me", ascii: "BabyMe.svg", original: "BabyMe.jpg", x: 692, y: 689, width: 53, height: 81 },
     { id: "dear-you", label: "Dear You", ascii: "DearYou.svg", original: "DearYou.jpg", x: 771, y: 714, width: 61, height: 90 },
-    { id: "grandma", label: "How to Make Millions Before Grandma Dies", ascii: "HowToMakeMillionsBeforeGrandmaDies.svg", original: null, x: 686, y: 819, width: 61, height: 87 },
+    { id: "grandma", label: "How to Make Millions Before Grandma Dies", ascii: "HowToMakeMillionsBeforeGrandmaDies.svg", original: "HowToMakeMillions.png", x: 686, y: 819, width: 61, height: 87 },
   ];
 
   const svgNamespace = "http://www.w3.org/2000/svg";

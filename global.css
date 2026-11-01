@@ -130,6 +130,7 @@ body {
 .site-nav--portrait .page-menu {
   align-items: flex-start;
   margin-left: 14px;
+  pointer-events: auto;
 }
 
 .site-nav a {
