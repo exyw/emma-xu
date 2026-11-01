@@ -14,8 +14,10 @@
     link.replaceChildren(text);
     let timer;
     let hovered = false;
+    const soundToken = {};
     function reset() {
       clearTimeout(timer);
+      window.siteTypingAudio.stop(soundToken);
       link.classList.remove('is-typing');
       text.textContent = label;
     }
@@ -26,9 +28,11 @@
         link.classList.add('is-typing');
         let index = 0;
         function next() {
+          window.siteTypingAudio.character(soundToken);
           text.textContent = label.slice(0, ++index);
           if (index < label.length) timer = setTimeout(next, 40 + Math.random() * 260);
           else {
+            window.siteTypingAudio.stop(soundToken);
             if (hovered) timer = setTimeout(play, 250 + Math.random() * 650);
           }
         }
@@ -68,6 +72,7 @@
     let cursorTimer;
     let isHovered = false;
     let previousDelays = [];
+    const soundToken = {};
     const minimumTypingDelay = 40;
     const maximumTypingDelay = 300;
     const minimumLoopDelay = 250;
@@ -99,6 +104,7 @@
 
       window.clearTimeout(typingTimer);
       window.clearTimeout(cursorTimer);
+      window.siteTypingAudio.stop(soundToken);
       link.classList.add("is-typing");
       text.textContent = "";
       let characterIndex = 0;
@@ -106,10 +112,12 @@
       const currentDelays = [];
 
       function typeNextCharacter() {
+        window.siteTypingAudio.character(soundToken);
         text.textContent = label.slice(0, characterIndex + 1);
         characterIndex += 1;
 
         if (characterIndex === label.length) {
+          window.siteTypingAudio.stop(soundToken);
           previousDelays = currentDelays;
           if (typeof onComplete === 'function') onComplete();
           if (repeat && isHovered) {
@@ -154,6 +162,7 @@
       isHovered = false;
       window.clearTimeout(typingTimer);
       window.clearTimeout(cursorTimer);
+      window.siteTypingAudio.stop(soundToken);
       link.classList.remove("is-typing");
       text.textContent = label;
     }

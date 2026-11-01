@@ -1,10 +1,25 @@
 (() => {
   const storageKey = 'emma-background-music';
-  const audio = document.createElement('audio');
-  audio.src = new URL('audio/ES_Sad Dad Eyes (Instrumental Version) - Mattias Tell - 0000-63803.wav', document.baseURI).href;
-  audio.loop = true;
-  audio.preload = 'metadata';
-  audio.hidden = true;
+  const soundSettings = Object.freeze({
+    track: 'ghosts-like-me',
+    musicVolume: 0.42,
+    typingStartOffset: 0.06,
+    typingVolume: 0.75,
+    typingFadeMs: 65,
+  });
+  const music = document.createElement('audio');
+  music.src = new URL('audio/ghosts-like-me.mp3', document.baseURI).href;
+  music.loop = true;
+  music.preload = 'metadata';
+  music.volume = soundSettings.musicVolume;
+  music.hidden = true;
+
+  const typing = document.createElement('audio');
+  typing.src = new URL('audio/ES_Computers, Keyboard & Mouse, Keyboard, Razer, Typing, Slow - Epidemic Sound.mp3', document.baseURI).href;
+  typing.loop = true;
+  typing.preload = 'auto';
+  typing.volume = soundSettings.typingVolume;
+  typing.hidden = true;
 
   const button = document.createElement('button');
   button.type = 'button';
@@ -17,63 +32,157 @@
     try {
       const state = JSON.parse(sessionStorage.getItem(storageKey) || '{}');
       return {
-        time: Number.isFinite(state.time) && state.time >= 0 ? state.time : 0,
-        playing: state.playing === true,
+        time: state.track === soundSettings.track && Number.isFinite(state.time) && state.time >= 0 ? state.time : 0,
+        enabled: state.enabled === true || (state.enabled == null && state.playing === true),
       };
     } catch (_) {
-      return { time: 0, playing: false };
+      return { time: 0, enabled: false };
     }
   }
 
   const initialState = readState();
   let savedTime = initialState.time;
   let seekPending = false;
-  let wantsPlayback = initialState.playing;
-  let playBlocked = false;
+  let enabled = initialState.enabled;
+  let musicBlocked = false;
   let resumePending = false;
   let leaving = false;
-  let playVersion = 0;
+  let musicPlayVersion = 0;
   let lastTimeSave = 0;
 
+  // Each typewriter owns a token. Future per-character samples can be triggered
+  // here without changing the typewriter's start/stop bookkeeping.
+  const activeWriters = new Set();
+  let typingBlocked = false;
+  let typingPending = false;
+  let typingNeedsStart = true;
+  let typingPlayVersion = 0;
+  let typingFadeFrame = null;
+
   function updateButton() {
-    const playing = (!audio.paused && !audio.ended) || (wantsPlayback && !playBlocked);
-    icon.textContent = playing ? '[Ⅱ]' : '[▶]';
-    button.setAttribute('aria-label', `${playing ? 'Pause' : 'Play'} background music`);
-    button.title = `${playing ? 'Pause' : 'Play'} background music`;
+    const soundOn = enabled && !musicBlocked;
+    icon.textContent = soundOn ? '[Ⅱ]' : '[▶]';
+    button.setAttribute('aria-label', `${soundOn ? 'Mute' : 'Enable'} all sound`);
+    button.title = `${soundOn ? 'Mute' : 'Enable'} all sound`;
   }
 
   function saveState(captureTime = true) {
-    if (captureTime && !seekPending && Number.isFinite(audio.currentTime) && audio.currentTime >= 0) {
-      savedTime = audio.currentTime;
+    if (captureTime && !seekPending && Number.isFinite(music.currentTime) && music.currentTime >= 0) {
+      savedTime = music.currentTime;
     }
     try {
-      sessionStorage.setItem(storageKey, JSON.stringify({ time: savedTime, playing: wantsPlayback }));
-    } catch (_) { /* Playback still works when storage is unavailable. */ }
+      sessionStorage.setItem(storageKey, JSON.stringify({
+        track: soundSettings.track, time: savedTime, enabled,
+      }));
+    } catch (_) { /* Sound still works when storage is unavailable. */ }
   }
 
   function restorePosition() {
-    if (!seekPending || audio.readyState < 1) return;
-    const duration = audio.duration;
+    if (!seekPending || music.readyState < 1) return;
+    const duration = music.duration;
     const time = Number.isFinite(duration) && duration > 0 ? savedTime % duration : savedTime;
     try {
-      audio.currentTime = time;
+      music.currentTime = time;
       seekPending = false;
-    } catch (_) { /* Keep the saved position for a later metadata event. */ }
+    } catch (_) { /* Try again after metadata arrives. */ }
   }
 
-  function tryPlay() {
-    const version = ++playVersion;
-    playBlocked = false;
-    updateButton();
-    const result = audio.play();
-    result?.catch((error) => {
-      if (leaving || version !== playVersion) return;
-      if (error.name === 'NotAllowedError') {
-        playBlocked = true;
+  function resetTypingPosition() {
+    if (typing.readyState < 1) return;
+    const duration = typing.duration;
+    const offset = Number.isFinite(duration) && duration > 0
+      ? Math.min(soundSettings.typingStartOffset, Math.max(0, duration - 0.05))
+      : soundSettings.typingStartOffset;
+    try { typing.currentTime = offset; } catch (_) { /* Retry on the next burst. */ }
+  }
+
+  function cancelTypingFade() {
+    if (typingFadeFrame !== null) cancelAnimationFrame(typingFadeFrame);
+    typingFadeFrame = null;
+    typing.volume = soundSettings.typingVolume;
+  }
+
+  function stopTyping(immediate = false) {
+    ++typingPlayVersion;
+    typingPending = false;
+    if (typingFadeFrame !== null) cancelAnimationFrame(typingFadeFrame);
+    typingFadeFrame = null;
+    if (immediate || typing.paused) {
+      typing.volume = 0;
+      if (!typing.paused) typing.pause();
+      resetTypingPosition();
+      typing.volume = soundSettings.typingVolume;
+      return;
+    }
+    const start = performance.now();
+    const initialVolume = typing.volume;
+    function fade(now) {
+      typingFadeFrame = null;
+      const amount = Math.min(1, (now - start) / soundSettings.typingFadeMs);
+      typing.volume = initialVolume * (1 - amount);
+      if (amount < 1) {
+        typingFadeFrame = requestAnimationFrame(fade);
       } else {
-        wantsPlayback = false;
+        typing.pause();
+        resetTypingPosition();
+        typing.volume = soundSettings.typingVolume;
+      }
+    }
+    typingFadeFrame = requestAnimationFrame(fade);
+  }
+
+  function startTypingIfCurrent() {
+    if (!enabled || musicBlocked || leaving || document.hidden || window.siteMotion.stopped ||
+        !activeWriters.size || typingBlocked) return;
+    cancelTypingFade();
+    if (!typing.paused) return;
+    if (typing.readyState < 1) {
+      typingPending = true;
+      return;
+    }
+    typingPending = false;
+    if (typingNeedsStart) {
+      resetTypingPosition();
+      typingNeedsStart = false;
+    }
+    const version = ++typingPlayVersion;
+    const result = typing.play();
+    result?.catch(() => {
+      if (version !== typingPlayVersion || leaving) return;
+      typingBlocked = true;
+      stopTyping(true);
+    });
+  }
+
+  window.siteTypingAudio = Object.freeze({
+    character(writer) {
+      if (!activeWriters.size) {
+        typingBlocked = false;
+        typingNeedsStart = true;
+      }
+      activeWriters.add(writer);
+      startTypingIfCurrent();
+    },
+    stop(writer) {
+      if (!activeWriters.delete(writer)) return;
+      if (!activeWriters.size) stopTyping();
+    },
+  });
+
+  function tryPlayMusic() {
+    const version = ++musicPlayVersion;
+    musicBlocked = false;
+    updateButton();
+    const result = music.play();
+    result?.catch((error) => {
+      if (leaving || version !== musicPlayVersion) return;
+      if (error.name === 'NotAllowedError') {
+        musicBlocked = true;
+      } else {
+        enabled = false;
         saveState();
       }
+      stopTyping(true);
       updateButton();
     });
   }
@@ -83,59 +192,66 @@
     const state = readState();
     savedTime = state.time;
     seekPending = true;
-    wantsPlayback = state.playing;
-    playBlocked = false;
-    resumePending = wantsPlayback;
+    enabled = state.enabled;
+    musicBlocked = false;
+    resumePending = enabled;
     restorePosition();
     if (resumePending && !seekPending) {
       resumePending = false;
-      tryPlay();
+      tryPlayMusic();
     }
     updateButton();
   }
 
-  audio.addEventListener('loadedmetadata', () => {
+  music.addEventListener('loadedmetadata', () => {
     restorePosition();
     if (resumePending && !seekPending && !leaving) {
       resumePending = false;
-      tryPlay();
+      tryPlayMusic();
     }
   });
-  audio.addEventListener('playing', () => {
+  music.addEventListener('playing', () => {
     if (leaving) return;
-    wantsPlayback = true;
-    playBlocked = false;
+    if (!enabled) { music.pause(); return; }
+    musicBlocked = false;
     updateButton();
     saveState(false);
   });
-  audio.addEventListener('pause', () => {
-    if (leaving) return;
-    wantsPlayback = false;
+  music.addEventListener('pause', () => {
+    if (leaving || !enabled || !music.paused) return;
+    musicBlocked = true;
+    stopTyping(true);
     updateButton();
-    saveState();
   });
-  audio.addEventListener('timeupdate', () => {
-    if (leaving || !wantsPlayback || seekPending || performance.now() - lastTimeSave < 250) return;
+  music.addEventListener('timeupdate', () => {
+    if (leaving || !enabled || musicBlocked || seekPending || performance.now() - lastTimeSave < 250) return;
     lastTimeSave = performance.now();
     saveState();
   });
+  typing.addEventListener('loadedmetadata', () => {
+    if (typingPending && activeWriters.size) startTypingIfCurrent();
+    else resetTypingPosition();
+  });
 
   button.addEventListener('click', () => {
-    if (wantsPlayback && !playBlocked) {
-      ++playVersion;
-      wantsPlayback = false;
+    if (enabled && !musicBlocked) {
+      ++musicPlayVersion;
+      enabled = false;
       resumePending = false;
-      audio.pause();
+      stopTyping(true);
+      music.pause();
       saveState();
       updateButton();
       return;
     }
-    wantsPlayback = true;
-    playBlocked = false;
+    enabled = true;
+    musicBlocked = false;
+    typingBlocked = false;
     resumePending = false;
     restorePosition();
     saveState(false);
-    tryPlay();
+    tryPlayMusic();
+    startTypingIfCurrent();
   });
 
   document.addEventListener('keydown', (event) => {
@@ -147,13 +263,20 @@
     button.click();
   });
 
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) return;
+    activeWriters.clear();
+    stopTyping(true);
+  });
   window.addEventListener('pagehide', () => {
-    saveState(false);
+    saveState();
     leaving = true;
-    ++playVersion;
-    audio.pause();
+    ++musicPlayVersion;
+    activeWriters.clear();
+    stopTyping(true);
+    music.pause();
   });
   window.addEventListener('pageshow', restore);
   updateButton();
-  document.body.append(audio, button);
+  document.body.append(music, typing, button);
 })();
