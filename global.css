@@ -356,6 +356,18 @@ body.home-page.is-splitting .site-nav .contact-link {
     justify-self: end; align-items: flex-end; text-align: right;
     transform: translateY(var(--selected-row-offset, 0px));
   }
+  html:not(.projects-initial-detail) .portrait-overview-page .site-nav--portrait .page-menu.is-open:has(> a:first-child.selected) {
+    transform: translateY(calc(var(--selected-row-offset) - 10px));
+  }
+  html:not(.projects-initial-detail) .portrait-overview-page .site-nav--portrait .page-menu.is-open:has(> a:last-child.selected) {
+    transform: translateY(calc(var(--selected-row-offset) + 10px));
+  }
+  html:not(.projects-initial-detail) .portrait-overview-page .site-nav--portrait .page-menu.is-open > a:first-child .typewriter-link__text {
+    transform: translateY(10px);
+  }
+  html:not(.projects-initial-detail) .portrait-overview-page .site-nav--portrait .page-menu.is-open > a:last-child .typewriter-link__text {
+    transform: translateY(-10px);
+  }
   html:not(.projects-initial-detail) .portrait-overview-page .site-nav--portrait .page-menu > a {
     position: relative; top: auto; left: auto; width: auto;
   }
@@ -371,6 +383,14 @@ body.home-page.is-splitting .site-nav .contact-link {
   html:not(.projects-initial-detail) .portrait-overview-page .site-nav--portrait .contact-link {
     grid-column: 3; justify-self: start; margin: 0 0 0 var(--portrait-side-gap);
     visibility: visible; opacity: 1; pointer-events: auto;
+  }
+  .contact-page .site-nav a { font-size: 12px; }
+  .contact-page .site-nav .page-menu.is-open { transform: translateY(-10px); }
+  .contact-page .site-nav .page-menu.is-open > a[href="index.html"] .typewriter-link__text {
+    transform: translateY(10px);
+  }
+  .contact-page .site-nav .page-menu.is-open > a[href="who-i-am.html"] .typewriter-link__text {
+    transform: translateY(-10px);
   }
   .portrait-overview-page .overview-navigation { display: none; }
   .swipe-surface { touch-action: pan-y pinch-zoom; }
