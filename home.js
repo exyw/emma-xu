@@ -35,11 +35,28 @@
     let fallback = null;
     let frame = null;
     let unsubscribe = null;
+    let overviewPreloaded = false;
     const clamp = (value, low, high) => Math.min(high, Math.max(low, value));
     const seed = (value) => {
       const raw = Math.sin(value * 127.1 + 78.233) * 43758.5453;
       return raw - Math.floor(raw);
     };
+    function preloadOverview() {
+      if (overviewPreloaded) return;
+      overviewPreloaded = true;
+      const images = [
+        'assets/projects/ascii/Silhouette ASCII.svg',
+        ...projects.map((project) => `assets/projects/colour/${project.colour}`),
+      ];
+      images.forEach((path, index) => {
+        const link = document.createElement('link');
+        link.rel = 'preload';
+        link.as = 'image';
+        link.href = new URL(path, document.baseURI).href;
+        if (index === 0) link.fetchPriority = 'high';
+        document.head.append(link);
+      });
+    }
     function cancel() {
       cancelled = true;
       clearTimeout(timer);
@@ -72,6 +89,14 @@
     }
     function go() {
       if (cancelled) return;
+      try {
+        const key = 'emma-projects-portrait-handoff';
+        if (document.body.classList.contains('is-finishing') && !window.siteMotion.stopped) {
+          sessionStorage.setItem(key, String(Date.now()));
+        } else {
+          sessionStorage.removeItem(key);
+        }
+      } catch (_) {}
       cancel();
       try { sessionStorage.setItem('emma-home-revealed', 'true'); } catch (_) {}
       location.assign(new URL('projects.html', document.baseURI).href);
@@ -214,6 +239,7 @@
       started = true;
       cancelled = false;
       if (window.siteMotion.stopped) { go(); return; }
+      preloadOverview();
       document.body.classList.add('is-intro-opening');
       siteNav.dispatchEvent(new Event('site-nav-intro-open'));
       fallback = setTimeout(chooseProject, 6500);

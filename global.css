@@ -1,4 +1,4 @@
-/* Begin shared music view transition. */
+/* Begin shared view transitions. */
 @view-transition { navigation: auto; }
 
 /* Keep the shared corner control steady across full-page navigation. */
@@ -9,7 +9,36 @@
 ::view-transition-new(music-toggle) {
   animation: none;
 }
-/* End shared music view transition. */
+
+/* The completed Home portrait blends into the Projects overview artwork. */
+.home-page.is-finishing .home-projects-preview__figure,
+.projects-entry-handoff .projects-page.portrait-overview-page .projects-figure {
+  view-transition-name: projects-portrait;
+}
+
+::view-transition-group(projects-portrait) {
+  animation-duration: 280ms;
+  animation-timing-function: ease-in-out;
+}
+
+::view-transition-old(projects-portrait) {
+  animation: 280ms ease-in-out both projects-portrait-out;
+}
+
+::view-transition-new(projects-portrait) {
+  animation: 280ms ease-in-out both projects-portrait-in;
+}
+
+@keyframes projects-portrait-out { to { opacity: 0; } }
+@keyframes projects-portrait-in { from { opacity: 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .home-page.is-finishing .home-projects-preview__figure,
+  .projects-entry-handoff .projects-page.portrait-overview-page .projects-figure {
+    view-transition-name: none;
+  }
+}
+/* End shared view transitions. */
 
 body {
   min-height: 100vh;

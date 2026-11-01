@@ -225,6 +225,9 @@
   let lastTimestamp = null;
   let frameId = null;
   let pageActive = true;
+  let handoffHolding = false;
+  let handoffRevealHandled = false;
+  let arrivalMotionAt = null;
   let isIntersecting = true;
   let requestVersion = 0;
   let geometry = null;
@@ -1243,24 +1246,29 @@
   }
 
   function drawMotion() {
-    if (window.siteMotion.stopped || (state === "detail" && visualOriginalShown)) {
+    if (window.siteMotion.stopped || handoffHolding || (state === "detail" && visualOriginalShown)) {
       drawStatic();
       return;
     }
     if (!geometry) updateGeometry();
+    const arrivalProgress = arrivalMotionAt === null ? 1 :
+      clamp((performance.now() - arrivalMotionAt) / 320, 0, 1);
+    const arrivalEase = ease(arrivalProgress);
+    if (arrivalProgress === 1) arrivalMotionAt = null;
     const amplitude = compactMotion.matches ? motion.compactAmplitude : motion.desktopAmplitude;
     const split = compactMotion.matches ? motion.compactSplit : motion.desktopSplit;
     const angle = 2 * Math.PI / motion.swayCycle;
     const sway = (at) => amplitude * Math.sin(angle * at);
-    const mainX = sway(time);
+    const mainX = sway(time) * arrivalEase;
     const burst = burstIntensity();
     const direction = Math.cos(angle * time) >= 0 ? 1 : -1;
     const nearX = sway(time - motion.nearDelay) - direction * motion.nearSplitFraction * split * burst;
     const farX = sway(time - motion.farDelay) - direction * split * burst;
-    const nearDelta = nearX - mainX;
-    const farDelta = farX - mainX;
+    const nearDelta = (nearX - sway(time)) * arrivalEase;
+    const farDelta = (farX - sway(time)) * arrivalEase;
     layer.style.transform = `translate3d(${mainX.toFixed(3)}px, 0, 0)`;
     sourceArt.echoes.style.display = "";
+    sourceArt.echoes.style.opacity = String(arrivalEase);
     const sourceUnitsPerPixel = crop.width / geometry.sourceRect.width;
     sourceArt.near.setAttribute("transform", `translate(${(nearDelta * sourceUnitsPerPixel).toFixed(3)} 0)`);
     sourceArt.far.setAttribute("transform", `translate(${(farDelta * sourceUnitsPerPixel).toFixed(3)} 0)`);
@@ -1299,12 +1307,13 @@
       if (state === "opening") settleDetail(true);
       if (state === "closing") settleOverview(active?.id);
     }
-    const shouldRun = pageActive && !document.hidden && isIntersecting && !window.siteMotion.stopped;
+    const shouldRun = pageActive && !document.hidden && isIntersecting &&
+      !window.siteMotion.stopped && !handoffHolding;
     if (!shouldRun) {
       if (frameId !== null) window.cancelAnimationFrame(frameId);
       frameId = null;
       lastTimestamp = null;
-      if (window.siteMotion.stopped) drawStatic();
+      if (window.siteMotion.stopped || handoffHolding) drawStatic();
       return;
     }
     if (frameId === null) {
@@ -1545,10 +1554,34 @@
     history.scrollRestoration = originalScrollRestoration;
     updateRunState();
   });
+  window.addEventListener("pagereveal", (event) => {
+    if (!document.documentElement.classList.contains('projects-entry-handoff')) return;
+    handoffRevealHandled = true;
+    if (!event.viewTransition) {
+      document.documentElement.classList.remove('projects-entry-handoff');
+      return;
+    }
+    handoffHolding = true;
+    updateRunState();
+    const finishHandoff = () => {
+      handoffHolding = false;
+      arrivalMotionAt = performance.now();
+      document.documentElement.classList.remove('projects-entry-handoff');
+      updateRunState();
+    };
+    event.viewTransition.finished.then(finishHandoff, finishHandoff);
+  });
   window.addEventListener("pageshow", () => {
     pageActive = true;
     history.scrollRestoration = state === "overview" ? originalScrollRestoration : "manual";
     updateRunState();
+    if (document.documentElement.classList.contains('projects-entry-handoff')) {
+      setTimeout(() => {
+        if (!handoffRevealHandled && !handoffHolding) {
+          document.documentElement.classList.remove('projects-entry-handoff');
+        }
+      }, 1000);
+    }
   });
   window.siteMotion.subscribe(() => {
     if (window.siteMotion.stopped && state === "detail" &&

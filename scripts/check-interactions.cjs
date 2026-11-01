@@ -8,7 +8,7 @@ const { JSDOM, VirtualConsole } = require('jsdom');
 const root = path.resolve(__dirname, '..');
 // jsdom's CSS parser does not yet accept cross-document View Transitions rules.
 const jsdomCSS = (css) => css.replace(
-  /\/\* Begin shared music view transition\. \*\/[\s\S]*?\/\* End shared music view transition\. \*\//g, '',
+  /\/\* Begin shared view transitions\. \*\/[\s\S]*?\/\* End shared view transitions\. \*\//g, '',
 );
 
 function page(file, { reduced = false, width = 390, height = 844, hash = '', saved = {}, coarse = width <= 1000, hover = width > 1000 } = {}) {

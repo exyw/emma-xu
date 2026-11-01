@@ -12,9 +12,34 @@
           document.documentElement.classList.add("projects-initial-detail");
         }
       } catch (_) { /* An invalid hash opens the overview. */ }
+      try {
+        const handoffKey = 'emma-projects-portrait-handoff';
+        const handoffAt = Number(sessionStorage.getItem(handoffKey));
+        sessionStorage.removeItem(handoffKey);
+        const handoffAge = Date.now() - handoffAt;
+        if (!document.documentElement.classList.contains('projects-initial-detail') &&
+            handoffAt > 0 && handoffAge >= 0 && handoffAge < 15000) {
+          document.documentElement.classList.add('projects-entry-handoff');
+        }
+      } catch (_) { /* Direct entry still works without session storage. */ }
+      if (!document.documentElement.classList.contains('projects-initial-detail')) {
+        const overviewImages = [
+          'assets/projects/ascii/Silhouette ASCII.svg',
+          ...window.projectConfig.projects.map((project) => `assets/projects/colour/${project.colour}`),
+        ];
+        overviewImages.forEach((path, index) => {
+          const link = document.createElement('link');
+          link.rel = 'preload';
+          link.as = 'image';
+          link.href = new URL(path, document.baseURI).href;
+          if (index === 0) link.fetchPriority = 'high';
+          document.head.append(link);
+        });
+      }
     </script>
     <link rel="stylesheet" href="global.css">
     <link rel="stylesheet" href="projects.css">
+    <link rel="expect" href="#projects-overview-ready" blocking="render">
   </head>
   <body class="projects-page portrait-overview-page">
     <nav class="site-nav site-nav--portrait is-ready" aria-label="Main navigation">
@@ -59,5 +84,6 @@
     <script src="navigation.js"></script>
     <script src="projects-morph-data.js"></script>
     <script src="projects.js"></script>
+    <span id="projects-overview-ready" hidden></span>
   </body>
 </html>
