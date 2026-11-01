@@ -6,7 +6,7 @@
   const canvas = document.querySelector('.contact-morph');
   const content = document.querySelector('.contact-content');
   const baby = content.querySelector('.contact-baby');
-  const intro = content.querySelector('.contact-intro');
+  const intros = [...content.querySelectorAll('.contact-intro')];
   const links = document.querySelector('.contact-links');
   const nav = document.querySelector('.site-nav');
   const cue = stage.querySelector('.scroll-cue');
@@ -60,7 +60,7 @@
     drawing.fillStyle = '#f7eee0';
     drawing.textBaseline = 'middle';
     const range = document.createRange();
-    for (const root of [intro, links]) {
+    for (const root of [...intros, links]) {
       const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
       while (walker.nextNode()) {
         const node = walker.currentNode;
