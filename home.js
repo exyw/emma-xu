@@ -17,7 +17,6 @@
   }
   function createProjectsJourney(on) {
     const siteNav = document.querySelector('.site-nav');
-    const narrowDesktopHeader = window.matchMedia('(min-width: 641px) and (max-width: 940px) and (hover: hover)');
     const projectLink = siteNav.querySelector('a[href="projects.html"]');
     const whoLink = siteNav.querySelector('a[href="who-i-am.html"]');
     const preview = document.querySelector('.home-projects-preview');
@@ -143,7 +142,7 @@
       splitting = true;
       const contact = siteNav.querySelector('.contact-link');
       const centerY = figure.getBoundingClientRect().top + figure.getBoundingClientRect().height / 2;
-      const targetTop = (window.siteLayout.matches ? centerY : narrowDesktopHeader.matches ? 28 : innerHeight / 2 - 8) - origins.project.height / 2;
+      const targetTop = (window.siteLayout.matches ? centerY : innerHeight / 2 - 8) - origins.project.height / 2;
       let projectX;
       if (window.siteLayout.matches) {
         const portrait = clamp((centerY * 2 - 240) * 276 / 900, 184, 276);
@@ -154,14 +153,6 @@
         projectX = innerWidth / 2 - portrait / 2 - sideGap - finalProjectWidth;
         const contactX = innerWidth / 2 + portrait / 2 + sideGap;
         contact.style.setProperty('--intro-x', `${contactX - origins.contact.left}px`);
-        contact.style.setProperty('--intro-y', `${targetTop - origins.contact.top}px`);
-      } else if (narrowDesktopHeader.matches) {
-        projectX = 24;
-        const contactStyle = getComputedStyle(contact);
-        const contactTextWidth = contact.querySelector('.typewriter-link__text')?.getBoundingClientRect().width;
-        const contactWidth = contactTextWidth === undefined ? origins.contact.width :
-          contactTextWidth + parseFloat(contactStyle.paddingLeft) + parseFloat(contactStyle.paddingRight);
-        contact.style.setProperty('--intro-x', `${innerWidth - 24 - contactWidth - origins.contact.left}px`);
         contact.style.setProperty('--intro-y', `${targetTop - origins.contact.top}px`);
       } else {
         const navWidth = Math.min(1010, innerWidth - 48);

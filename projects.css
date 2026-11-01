@@ -503,7 +503,7 @@
     align-items: center;
     justify-content: space-between;
     margin: -40px 0 -16px -24px;
-    padding: 12px 24px 0;
+    padding: 12px var(--sound-header-end-padding) 0 24px;
     -webkit-backdrop-filter: blur(12px);
     backdrop-filter: blur(12px);
   }
@@ -580,7 +580,7 @@
     margin-top: -12px;
     margin-left: calc(-1 * max(20px, env(safe-area-inset-left)));
     margin-bottom: -44px;
-    padding: 12px max(20px, env(safe-area-inset-right)) 0 max(20px, env(safe-area-inset-left));
+    padding: 12px var(--sound-header-end-padding) 0 max(20px, env(safe-area-inset-left));
     -webkit-backdrop-filter: blur(12px);
     backdrop-filter: blur(12px);
   }

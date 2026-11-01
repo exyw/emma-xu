@@ -40,6 +40,12 @@
 }
 /* End shared view transitions. */
 
+:root {
+  --sound-control-right: max(16px, env(safe-area-inset-right));
+  --sound-control-size: 44px;
+  --sound-header-end-padding: calc(var(--sound-control-right) + var(--sound-control-size) + 8px);
+}
+
 body {
   min-height: 100vh;
   margin: 0;
@@ -51,11 +57,11 @@ body {
   view-transition-name: music-toggle;
   position: fixed;
   z-index: 50;
-  right: max(16px, env(safe-area-inset-right));
-  bottom: max(16px, env(safe-area-inset-bottom));
+  top: max(12px, env(safe-area-inset-top));
+  right: var(--sound-control-right);
   display: grid;
-  width: 44px;
-  height: 44px;
+  width: var(--sound-control-size);
+  height: var(--sound-control-size);
   place-items: center;
   padding: 0;
   border: 0;
@@ -259,35 +265,8 @@ body.home-page.is-splitting .site-nav .contact-link {
   transition: transform 2100ms cubic-bezier(.22,.7,.16,1), opacity 500ms ease;
 }
 
-/* Give the Projects portrait its full stage width on narrower mouse desktops. */
+/* Compact desktop Projects details use their own sticky header. */
 @media (min-width: 641px) and (max-width: 940px) and (hover: hover) {
-  .projects-page.portrait-overview-page .site-nav--portrait {
-    --nav-row-height: 44px;
-    position: sticky;
-    top: 0;
-    left: auto;
-    z-index: 5;
-    width: 100%;
-    height: 56px;
-    margin: 0 0 -56px;
-    padding: 0 24px;
-    align-items: center;
-    transform: none;
-    pointer-events: auto;
-    -webkit-backdrop-filter: blur(12px);
-    backdrop-filter: blur(12px);
-  }
-  .projects-page.portrait-overview-page .site-nav--portrait .page-menu {
-    margin-left: 0;
-  }
-  .projects-page.portrait-overview-page .site-nav--portrait a {
-    min-height: 44px;
-    padding: 12px 0;
-    font-size: 13px;
-    font-weight: 700;
-    text-decoration: underline;
-    text-underline-offset: 3px;
-  }
   .projects-initial-detail .projects-page .site-nav--portrait,
   .projects-page:not(.portrait-overview-page) .site-nav--portrait { display: none; }
 }
@@ -418,7 +397,7 @@ body.home-page.is-splitting .site-nav .contact-link {
     visibility: visible; opacity: 1; pointer-events: auto;
   }
   .contact-page .site-nav a {
-    font-size: 15px;
+    font-size: 13px;
     text-decoration: underline;
     text-decoration-thickness: 1px;
     text-underline-offset: 3px;

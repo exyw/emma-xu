@@ -178,7 +178,7 @@ html::-webkit-scrollbar { display: none; }
     left: 0;
     width: auto;
     margin: 0;
-    padding: max(12px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) 8px max(16px, env(safe-area-inset-left));
+    padding: max(12px, env(safe-area-inset-top)) var(--sound-header-end-padding) 8px max(16px, env(safe-area-inset-left));
     background: linear-gradient(to bottom, rgba(19, 13, 8, 0.96), rgba(19, 13, 8, 0.86) 72%, transparent);
     backdrop-filter: blur(8px);
     transform: none;
