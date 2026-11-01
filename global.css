@@ -384,7 +384,17 @@ body.home-page.is-splitting .site-nav .contact-link {
     grid-column: 3; justify-self: start; margin: 0 0 0 var(--portrait-side-gap);
     visibility: visible; opacity: 1; pointer-events: auto;
   }
-  .contact-page .site-nav a { font-size: 12px; }
+  .contact-page .site-nav a {
+    font-size: 15px;
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+  }
+  .contact-page .site-nav .typewriter-link__text {
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+  }
   .contact-page .site-nav .page-menu.is-open { transform: translateY(-10px); }
   .contact-page .site-nav .page-menu.is-open > a[href="index.html"] .typewriter-link__text {
     transform: translateY(10px);
