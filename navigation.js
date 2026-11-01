@@ -17,7 +17,7 @@
     const soundToken = {};
     function reset() {
       clearTimeout(timer);
-      window.siteTypingAudio.stop(soundToken);
+      window.siteTypingAudio.cancel(soundToken);
       link.classList.remove('is-typing');
       text.textContent = label;
     }
@@ -28,7 +28,7 @@
         link.classList.add('is-typing');
         let index = 0;
         function next() {
-          window.siteTypingAudio.character(soundToken);
+          window.siteTypingAudio.character(soundToken, label[index]);
           text.textContent = label.slice(0, ++index);
           if (index < label.length) timer = setTimeout(next, 40 + Math.random() * 260);
           else {
@@ -104,7 +104,7 @@
 
       window.clearTimeout(typingTimer);
       window.clearTimeout(cursorTimer);
-      window.siteTypingAudio.stop(soundToken);
+      window.siteTypingAudio.cancel(soundToken);
       link.classList.add("is-typing");
       text.textContent = "";
       let characterIndex = 0;
@@ -112,7 +112,7 @@
       const currentDelays = [];
 
       function typeNextCharacter() {
-        window.siteTypingAudio.character(soundToken);
+        window.siteTypingAudio.character(soundToken, label[characterIndex]);
         text.textContent = label.slice(0, characterIndex + 1);
         characterIndex += 1;
 
@@ -162,7 +162,7 @@
       isHovered = false;
       window.clearTimeout(typingTimer);
       window.clearTimeout(cursorTimer);
-      window.siteTypingAudio.stop(soundToken);
+      window.siteTypingAudio.cancel(soundToken);
       link.classList.remove("is-typing");
       text.textContent = label;
     }

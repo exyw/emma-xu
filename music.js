@@ -3,9 +3,9 @@
   const soundSettings = Object.freeze({
     track: 'ghosts-like-me',
     musicVolume: 0.42,
-    typingStartOffset: 0.06,
-    typingVolume: 0.75,
-    typingFadeMs: 65,
+    typingVolume: 0.45,
+    typingMinIntervalMs: 65,
+    typingFadeMs: 25,
   });
   const music = document.createElement('audio');
   music.src = new URL('audio/ghosts-like-me.mp3', document.baseURI).href;
@@ -14,12 +14,14 @@
   music.volume = soundSettings.musicVolume;
   music.hidden = true;
 
-  const typing = document.createElement('audio');
-  typing.src = new URL('audio/ES_Computers, Keyboard & Mouse, Keyboard, Razer, Typing, Slow - Epidemic Sound.mp3', document.baseURI).href;
-  typing.loop = true;
-  typing.preload = 'auto';
-  typing.volume = soundSettings.typingVolume;
-  typing.hidden = true;
+  const keypresses = Array.from({ length: 6 }, (_, index) => {
+    const audio = document.createElement('audio');
+    audio.src = new URL(`audio/typing-keypresses/keypress-0${index + 1}.wav`, document.baseURI).href;
+    audio.preload = 'auto';
+    audio.volume = soundSettings.typingVolume;
+    audio.hidden = true;
+    return { audio, writer: null, busy: false, version: 0, fadeFrame: null };
+  });
 
   const button = document.createElement('button');
   button.type = 'button';
@@ -50,14 +52,11 @@
   let musicPlayVersion = 0;
   let lastTimeSave = 0;
 
-  // Each typewriter owns a token. Future per-character samples can be triggered
-  // here without changing the typewriter's start/stop bookkeeping.
+  // Each typewriter owns a token, so cancellation only stops its own keypresses.
   const activeWriters = new Set();
   let typingBlocked = false;
-  let typingPending = false;
-  let typingNeedsStart = true;
-  let typingPlayVersion = 0;
-  let typingFadeFrame = null;
+  let lastKeypressAt = -Infinity;
+  let lastKeypressIndex = -1;
 
   function updateButton() {
     const soundOn = enabled && !musicBlocked;
@@ -87,85 +86,89 @@
     } catch (_) { /* Try again after metadata arrives. */ }
   }
 
-  function resetTypingPosition() {
-    if (typing.readyState < 1) return;
-    const duration = typing.duration;
-    const offset = Number.isFinite(duration) && duration > 0
-      ? Math.min(soundSettings.typingStartOffset, Math.max(0, duration - 0.05))
-      : soundSettings.typingStartOffset;
-    try { typing.currentTime = offset; } catch (_) { /* Retry on the next burst. */ }
-  }
-
-  function cancelTypingFade() {
-    if (typingFadeFrame !== null) cancelAnimationFrame(typingFadeFrame);
-    typingFadeFrame = null;
-    typing.volume = soundSettings.typingVolume;
-  }
-
-  function stopTyping(immediate = false) {
-    ++typingPlayVersion;
-    typingPending = false;
-    if (typingFadeFrame !== null) cancelAnimationFrame(typingFadeFrame);
-    typingFadeFrame = null;
-    if (immediate || typing.paused) {
-      typing.volume = 0;
-      if (!typing.paused) typing.pause();
-      resetTypingPosition();
-      typing.volume = soundSettings.typingVolume;
-      return;
-    }
+  function stopKeypress(keypress, immediate = false) {
+    if (!keypress.busy) return;
+    ++keypress.version;
+    if (keypress.fadeFrame !== null) cancelAnimationFrame(keypress.fadeFrame);
+    keypress.fadeFrame = null;
+    const finish = () => {
+      keypress.audio.volume = 0;
+      keypress.audio.pause();
+      keypress.audio.volume = soundSettings.typingVolume;
+      keypress.busy = false;
+      keypress.writer = null;
+    };
+    if (immediate || keypress.audio.paused) { finish(); return; }
     const start = performance.now();
-    const initialVolume = typing.volume;
+    const initialVolume = keypress.audio.volume;
     function fade(now) {
-      typingFadeFrame = null;
+      keypress.fadeFrame = null;
       const amount = Math.min(1, (now - start) / soundSettings.typingFadeMs);
-      typing.volume = initialVolume * (1 - amount);
-      if (amount < 1) {
-        typingFadeFrame = requestAnimationFrame(fade);
-      } else {
-        typing.pause();
-        resetTypingPosition();
-        typing.volume = soundSettings.typingVolume;
-      }
+      keypress.audio.volume = initialVolume * (1 - amount);
+      if (amount < 1) keypress.fadeFrame = requestAnimationFrame(fade);
+      else finish();
     }
-    typingFadeFrame = requestAnimationFrame(fade);
+    keypress.fadeFrame = requestAnimationFrame(fade);
   }
 
-  function startTypingIfCurrent() {
-    if (!enabled || musicBlocked || leaving || document.hidden || window.siteMotion.stopped ||
-        !activeWriters.size || typingBlocked) return;
-    cancelTypingFade();
-    if (!typing.paused) return;
-    if (typing.readyState < 1) {
-      typingPending = true;
-      return;
-    }
-    typingPending = false;
-    if (typingNeedsStart) {
-      resetTypingPosition();
-      typingNeedsStart = false;
-    }
-    const version = ++typingPlayVersion;
-    const result = typing.play();
-    result?.catch(() => {
-      if (version !== typingPlayVersion || leaving) return;
-      typingBlocked = true;
-      stopTyping(true);
+  function stopKeypresses(immediate = false, writer = null) {
+    keypresses.forEach((keypress) => {
+      if (writer === null || keypress.writer === writer) stopKeypress(keypress, immediate);
     });
   }
 
+  keypresses.forEach((keypress) => {
+    keypress.audio.addEventListener('ended', () => {
+      if (keypress.fadeFrame !== null) cancelAnimationFrame(keypress.fadeFrame);
+      keypress.fadeFrame = null;
+      keypress.audio.volume = soundSettings.typingVolume;
+      keypress.busy = false;
+      keypress.writer = null;
+    });
+  });
+
+  function playKeypress(writer, character) {
+    if (!character || /\s/u.test(character) || !enabled || musicBlocked || leaving ||
+        document.hidden || window.siteMotion.stopped || typingBlocked) return;
+    const now = performance.now();
+    if (now - lastKeypressAt < soundSettings.typingMinIntervalMs) return;
+    const available = keypresses.filter((keypress) => !keypress.busy && keypress.audio.readyState >= 2);
+    if (!available.length) return;
+    const alternatives = available.filter((keypress) => keypresses.indexOf(keypress) !== lastKeypressIndex);
+    const choices = alternatives.length ? alternatives : available;
+    const keypress = choices[Math.floor(Math.random() * choices.length)];
+    const index = keypresses.indexOf(keypress);
+    keypress.busy = true;
+    keypress.writer = writer;
+    keypress.audio.volume = soundSettings.typingVolume;
+    const version = ++keypress.version;
+    try {
+      keypress.audio.currentTime = 0;
+      lastKeypressAt = now;
+      lastKeypressIndex = index;
+      keypress.audio.play()?.catch(() => {
+        if (version !== keypress.version || leaving) return;
+        typingBlocked = true;
+        stopKeypresses(true);
+      });
+    } catch (_) {
+      typingBlocked = true;
+      stopKeypresses(true);
+    }
+  }
+
   window.siteTypingAudio = Object.freeze({
-    character(writer) {
-      if (!activeWriters.size) {
-        typingBlocked = false;
-        typingNeedsStart = true;
-      }
+    character(writer, character) {
+      if (!activeWriters.size) typingBlocked = false;
       activeWriters.add(writer);
-      startTypingIfCurrent();
+      playKeypress(writer, character);
     },
     stop(writer) {
-      if (!activeWriters.delete(writer)) return;
-      if (!activeWriters.size) stopTyping();
+      activeWriters.delete(writer);
+    },
+    cancel(writer) {
+      activeWriters.delete(writer);
+      stopKeypresses(false, writer);
     },
   });
 
@@ -182,7 +185,7 @@
         enabled = false;
         saveState();
       }
-      stopTyping(true);
+      stopKeypresses(true);
       updateButton();
     });
   }
@@ -220,7 +223,7 @@
   music.addEventListener('pause', () => {
     if (leaving || !enabled || !music.paused) return;
     musicBlocked = true;
-    stopTyping(true);
+    stopKeypresses(true);
     updateButton();
   });
   music.addEventListener('timeupdate', () => {
@@ -228,17 +231,12 @@
     lastTimeSave = performance.now();
     saveState();
   });
-  typing.addEventListener('loadedmetadata', () => {
-    if (typingPending && activeWriters.size) startTypingIfCurrent();
-    else resetTypingPosition();
-  });
-
   button.addEventListener('click', () => {
     if (enabled && !musicBlocked) {
       ++musicPlayVersion;
       enabled = false;
       resumePending = false;
-      stopTyping(true);
+      stopKeypresses(true);
       music.pause();
       saveState();
       updateButton();
@@ -251,7 +249,6 @@
     restorePosition();
     saveState(false);
     tryPlayMusic();
-    startTypingIfCurrent();
   });
 
   document.addEventListener('keydown', (event) => {
@@ -266,17 +263,17 @@
   document.addEventListener('visibilitychange', () => {
     if (!document.hidden) return;
     activeWriters.clear();
-    stopTyping(true);
+    stopKeypresses(true);
   });
   window.addEventListener('pagehide', () => {
     saveState();
     leaving = true;
     ++musicPlayVersion;
     activeWriters.clear();
-    stopTyping(true);
+    stopKeypresses(true);
     music.pause();
   });
   window.addEventListener('pageshow', restore);
   updateButton();
-  document.body.append(music, typing, button);
+  document.body.append(music, ...keypresses.map(({ audio }) => audio), button);
 })();
