@@ -35,7 +35,7 @@ html::-webkit-scrollbar { display: none; }
 .contact-sequence { height: 320svh; }
 .contact-page:not(.has-contact-motion) .contact-sequence { height: 100svh; }
 .contact-stage {
-  --contact-portrait-width: min(calc(100vw - 48px), calc((80svh - 116px) * 1679 / 1009));
+  --contact-portrait-width: min(calc(100vw - 48px), calc((80svh - 148px) * 1679 / 1009));
   position: sticky;
   top: 0;
   height: 100svh;
@@ -49,10 +49,10 @@ html::-webkit-scrollbar { display: none; }
 }
 .contact-portrait {
   position: absolute;
-  top: 40px;
+  top: 72px;
   left: 50%;
   display: none;
-  /* Match portrait-page top padding and leave 24px above the navigation. */
+  /* Clear the sound control and leave at least 24px above the navigation. */
   width: var(--contact-portrait-width);
   max-width: calc(100vw - 48px);
   height: auto;
@@ -80,10 +80,12 @@ html::-webkit-scrollbar { display: none; }
 }
 .contact-page.has-contact-motion .contact-content { opacity: 0; }
 .contact-baby {
+  position: relative;
+  top: 8px;
   display: block;
   width: auto;
   max-width: 100%;
-  height: max(63px, min(25.2svh, 252px, calc(56svh - 203px)));
+  height: calc(max(63px, min(25.2svh, 252px, calc(56svh - 203px))) * 0.85);
   margin: 20px auto clamp(28px, min(6svh, 3vw), 64px);
   filter: brightness(0) invert(1);
   object-fit: contain;
@@ -133,7 +135,7 @@ html::-webkit-scrollbar { display: none; }
 .contact-page .site-nav {
   top: 80%;
   z-index: 3;
-  color: #fff;
+  color: var(--contact-ink);
   font-family: courier, monospace;
 }
 .contact-menu { position: relative; }
@@ -221,7 +223,7 @@ html::-webkit-scrollbar { display: none; }
     text-align-last: left;
   }
   .contact-baby {
-    height: min(26.6svh, 196px);
+    height: calc(min(26.6svh, 196px) * 0.85);
     margin: 16px auto 28px;
   }
   .contact-links {
